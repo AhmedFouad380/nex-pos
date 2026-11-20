@@ -6,6 +6,7 @@ use App\Domain\Reporting\Data\ReportFilter;
 use App\Filament\NavigationGroup;
 use App\Filament\Support\UserLocations;
 use App\Models\User;
+use App\Support\FiscalYear;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
@@ -61,8 +62,10 @@ abstract class ReportPage extends Page
 
     public function mount(): void
     {
-        $this->from = now()->startOfMonth()->toDateString();
-        $this->to = now()->toDateString();
+        // the year chosen in the top bar: this month while it is the current year, else that whole year
+        [$start] = FiscalYear::range();
+        $this->from = (FiscalYear::isCurrent() ? now()->startOfMonth() : $start)->toDateString();
+        $this->to = FiscalYear::reportEnd()->toDateString();
         $this->group = array_key_first($this->groupOptions());
         $this->option = array_key_first($this->optionChoices());
     }

@@ -14,7 +14,7 @@ return [
     'groups' => [
         'access' => ['admin.access', 'pos.access', 'locations.access_all'],
         'users' => ['users.view', 'users.create', 'users.update', 'users.delete', 'roles.manage'],
-        'settings' => ['settings.manage', 'locations.manage', 'printing.manage', 'backup.manage', 'activity_log.view'],
+        'settings' => ['settings.manage', 'locations.manage', 'printing.manage', 'backup.manage', 'activity_log.view', 'fiscal_year.edit_closed'],
         'products' => ['products.view', 'products.create', 'products.update', 'products.delete', 'products.import',
             'products.view_purchase_price', 'catalog.manage', 'discounts.manage', 'labels.print'],
         'inventory' => ['stock.view', 'stock_adjustments.view', 'stock_adjustments.create', 'stock_adjustments.void',

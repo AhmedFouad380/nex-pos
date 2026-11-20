@@ -2,6 +2,7 @@
 
 return [
     'errors' => [
+        'year_closed' => 'سنة :year مقفولة: لا يمكن إضافة أو تعديل أو إلغاء أي حركة بتاريخ فيها.',
         'non_positive_amount' => 'المبلغ يجب أن يكون أكبر من صفر.',
         'contact_or_account_required' => 'حدد جهة الاتصال أو الحساب المقابل.',
         'method_without_account' => 'طريقة الدفع ":method" غير مربوطة بحساب خزينة أو بنك.',

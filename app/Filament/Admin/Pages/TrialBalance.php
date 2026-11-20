@@ -7,6 +7,7 @@ use App\Domain\Finance\Services\GeneralLedger;
 use App\Filament\Admin\Resources\Accounts\AccountResource;
 use App\Filament\NavigationGroup;
 use App\Support\Decimal;
+use App\Support\FiscalYear;
 use Brick\Math\BigDecimal;
 use Filament\Actions\Action;
 use Filament\Pages\Page;
@@ -50,8 +51,8 @@ class TrialBalance extends Page
 
     public function mount(): void
     {
-        $this->from = now()->startOfYear()->toDateString();
-        $this->to = now()->toDateString();
+        $this->from = FiscalYear::range()[0]->toDateString(); // the year chosen in the top bar
+        $this->to = FiscalYear::reportEnd()->toDateString();
     }
 
     /** @return array{rows: Collection<int, array{account: Account, depth: int, opening: string, debit: string, credit: string, closing: string}>, totals: array<string, string>, balanced: bool} */

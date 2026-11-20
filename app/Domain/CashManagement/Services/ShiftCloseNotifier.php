@@ -4,6 +4,7 @@ namespace App\Domain\CashManagement\Services;
 
 use App\Domain\CashManagement\Models\CashSession;
 use App\Models\User;
+use App\Support\BellNotification;
 use App\Support\Decimal;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -41,9 +42,7 @@ final class ShiftCloseNotifier
             ->actions([Action::make('open')->label(__('cash.closed.open'))
                 ->url(route('filament.admin.resources.cash-sessions.view', ['record' => $session]))->markAsRead()]);
 
-        foreach ($this->recipients($session) as $user) {
-            $notification->sendToDatabase($user);
-        }
+        BellNotification::send($notification, $this->recipients($session));
     }
 
     /** @return iterable<User> */

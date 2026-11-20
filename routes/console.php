@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // activity log entries older than config('activitylog.clean_after_days')
 Schedule::command('activitylog:clean --force')->daily();
+
+// a branch with an open shift and no sale for too long (setting: POS ← idle_alert_hours)
+Schedule::command('sales:idle-alert')->everyFifteenMinutes()->withoutOverlapping();

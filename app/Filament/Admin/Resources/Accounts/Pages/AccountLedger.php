@@ -6,6 +6,7 @@ use App\Domain\Finance\Models\Account;
 use App\Domain\Finance\Services\GeneralLedger;
 use App\Filament\Admin\Resources\Accounts\AccountResource;
 use App\Filament\Admin\Resources\JournalEntries\JournalEntryResource;
+use App\Support\FiscalYear;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -29,8 +30,8 @@ class AccountLedger extends Page
     {
         abort_unless(auth()->user()?->can('accounts.view'), 403);
         $this->record = $this->resolveRecord($record);
-        $this->from = now()->startOfYear()->toDateString();
-        $this->to = now()->toDateString();
+        $this->from = FiscalYear::range()[0]->toDateString(); // the year chosen in the top bar
+        $this->to = FiscalYear::reportEnd()->toDateString();
     }
 
     public function account(): Account

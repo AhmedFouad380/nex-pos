@@ -2,6 +2,7 @@
 
 return [
     'errors' => [
+        'year_closed' => 'The year :year is closed: nothing dated in it can be added, changed or voided.',
         'non_positive_amount' => 'The amount must be greater than zero.',
         'contact_or_account_required' => 'Choose a contact or a counter account.',
         'method_without_account' => 'Payment method ":method" is not linked to a cash or bank account.',

@@ -42,6 +42,9 @@ class AdminPanelProvider extends PanelProvider
             ->databaseNotifications()
             ->navigationGroups(NavigationGroup::class)
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, fn (): string => view('filament.admin.pos-button')->render())
+            // the fiscal year shown everywhere, and a reminder while an older one is open
+            ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_BEFORE, fn (): string => view('filament.admin.fiscal-year.switcher')->render())
+            ->renderHook(PanelsRenderHook::CONTENT_START, fn (): string => view('filament.admin.fiscal-year.banner')->render())
             // "?" on every page that has a help file in resources/help/
             ->renderHook(PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE, function (array $scopes): string {
                 $topic = isset($scopes[0]) ? HelpTopics::forPage($scopes[0]) : null;

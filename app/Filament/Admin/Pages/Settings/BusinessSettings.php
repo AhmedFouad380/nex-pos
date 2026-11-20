@@ -48,9 +48,9 @@ class BusinessSettings extends Page
     /** form key => [settings class, editable properties] */
     private const GROUPS = [
         'general' => [GeneralSettings::class, ['business_name', 'logo_path', 'theme_color', 'address', 'phone', 'email', 'currency_code', 'currency_precision',
-            'date_format', 'timezone', 'tax_label_1', 'tax_number_1', 'tax_label_2', 'tax_number_2']],
+            'date_format', 'timezone', 'fy_start_month', 'lock_past_years', 'tax_label_1', 'tax_number_1', 'tax_label_2', 'tax_number_2']],
         'pos' => [PosSettings::class, ['require_open_register', 'enable_draft', 'enable_suspend', 'enable_quotation', 'enable_card_payment',
-            'enable_multiple_payments', 'enable_credit_sale', 'allow_discount', 'allow_price_edit', 'print_receipt_on_finalize', 'keyboard_shortcuts']],
+            'enable_multiple_payments', 'enable_credit_sale', 'allow_discount', 'allow_price_edit', 'print_receipt_on_finalize', 'keyboard_shortcuts', 'idle_alert_hours']],
         'inventory' => [InventorySettings::class, ['costing_method', 'allow_overselling', 'sku_prefix', 'enable_brands', 'enable_categories',
             'enable_sub_units', 'enable_lots', 'enable_expiry', 'enable_serials', 'stop_selling_days_before_expiry']],
         'purchase' => [PurchaseSettings::class, ['enable_purchase_status', 'enable_editing_product_from_purchase', 'enable_foreign_currency', 'default_exchange_rate']],
@@ -126,6 +126,10 @@ class BusinessSettings extends Page
                         ]),
                         Select::make('general.timezone')->label(__('Time zone'))->required()->searchable()
                             ->options(fn () => array_combine(timezone_identifiers_list(), timezone_identifiers_list())),
+                        Select::make('general.fy_start_month')->label(__('Fiscal year starts in'))->required()
+                            ->options(collect(range(1, 12))->mapWithKeys(fn (int $m) => [$m => now()->setMonth($m)->startOfMonth()->translatedFormat('F')])->all()),
+                        Toggle::make('general.lock_past_years')->label(__('Lock past years'))
+                            ->helperText(__('Nothing dated in an earlier fiscal year can be added, changed or voided, except by users allowed to edit closed years.')),
                     ]),
                 ]),
                 Tab::make(__('Point of sale'))->icon(Heroicon::OutlinedShoppingBag)->schema([
@@ -143,6 +147,8 @@ class BusinessSettings extends Page
                             ->helperText(__('Also needs the permission ":permission" in the user role.', ['permission' => __('permissions.permissions')['pos.edit_discount'] ?? 'pos.edit_discount'])),
                         Toggle::make('pos.allow_price_edit')->label(__('Changing the price'))
                             ->helperText(__('Also needs the permission ":permission" in the user role.', ['permission' => __('permissions.permissions')['pos.edit_price'] ?? 'pos.edit_price'])),
+                        TextInput::make('pos.idle_alert_hours')->label(__('Alert after hours without a sale'))->numeric()->integer()->minValue(0)->maxValue(24)->required()
+                            ->suffix(__('hours'))->helperText(__('While a branch has an open shift. 0 turns the alert off.')),
                     ]),
                     Section::make(__('Keyboard shortcuts'))->description(__('Like shift+e or ctrl+k.'))->columns(4)->schema(
                         array_map(fn (string $action) => TextInput::make("pos.keyboard_shortcuts.{$action}")->label(__("shortcut.{$action}"))->maxLength(20),

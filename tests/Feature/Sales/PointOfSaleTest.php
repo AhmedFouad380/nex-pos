@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Settings\PosSettings;
 use Filament\Auth\Pages\EditProfile;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Queue;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 use function Pest\Livewire\livewire;
@@ -306,4 +307,15 @@ it('refuses an invoice discount that takes the sale below cost', function () {
 
     $this->cashier->givePermissionTo('pos.override_limits');
     expect($sell(['discount_type' => 'percent', 'discount_value' => 50]))->not->toHaveKey('error');
+});
+
+it('puts the shift-closed notification in the bell even without a queue worker', function () {
+    Queue::fake(); // nothing queued would ever run
+    $session = openSession($this->cashier, 100);
+    livewire(PointOfSale::class)->instance()->closeShift(100);
+
+    $admin = User::query()->where('email', config('newpos.seed_admin.email'))->firstOrFail();
+    expect($session->refresh()->status)->toBe(CashSessionStatus::Closed)
+        ->and($admin->notifications()->count())->toBe(1);
+    Queue::assertNothingPushed();
 });

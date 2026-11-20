@@ -4,6 +4,7 @@ namespace App\Domain\Payroll\Services;
 
 use App\Domain\Payroll\Models\AdvanceRequest;
 use App\Models\User;
+use App\Support\BellNotification;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 
@@ -53,9 +54,7 @@ final class AdvanceRequestNotifier
     /** @param iterable<User> $users */
     private function send(Notification $notification, iterable $users): void
     {
-        foreach ($users as $user) {
-            $notification->sendToDatabase($user);
-        }
+        BellNotification::send($notification, $users);
     }
 
     /** @return list<User> */

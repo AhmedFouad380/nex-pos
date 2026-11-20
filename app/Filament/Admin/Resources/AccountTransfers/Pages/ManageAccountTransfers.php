@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\AccountTransfers\Pages;
 use App\Domain\Finance\Actions\TransferBetweenAccounts;
 use App\Filament\Admin\Resources\AccountTransfers\AccountTransferResource;
 use App\Filament\Concerns\HandlesDomainExceptions;
+use App\Filament\Concerns\ScopedToFiscalYear;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 use Illuminate\Support\Carbon;
@@ -12,6 +13,7 @@ use Illuminate\Support\Carbon;
 class ManageAccountTransfers extends ManageRecords
 {
     use HandlesDomainExceptions;
+    use ScopedToFiscalYear;
 
     protected static string $resource = AccountTransferResource::class;
 

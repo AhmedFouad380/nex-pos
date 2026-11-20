@@ -32,6 +32,9 @@ class GeneralSettings extends Settings
     /** financial year start month 1-12 */
     public int $fy_start_month;
 
+    /** years before the current fiscal year are closed to changes (App\Support\PeriodLock) */
+    public bool $lock_past_years;
+
     /** business start date (Y-m-d) */
     public ?string $start_date;
 

@@ -805,3 +805,15 @@ unique(legacy_table, legacy_id)
 - The drawers screen was removed. `BranchDrawer::for($location)` returns the branch's only drawer and creates it if missing; `Location::booted` creates it with each new branch.
 - `php artisan cash:branch-drawers` (`consolidate()`), also run at the end of a full legacy import: keeps the drawer with an open shift (else the most used), names it after the branch, switches off drawers with history and deletes unused ones.
 - POS: the shift opens on a branch (`shiftBranches()`, `openShift($locationId)`), shows who has a shift open there, and shows the branch name in the header. Shift pages show the branch.
+
+## 32. السنة المالية: العرض والقفل
+- `App\Support\FiscalYear`:
+  - The selected year is kept in the session. The year switcher (`GLOBAL_SEARCH_BEFORE`) posts to route `fiscal-year.switch`; a banner (`CONTENT_START`) shows while a past year is open.
+  - `COLUMNS` says which date places each document in a year.
+  - `ScopedToFiscalYear` on the document list pages limits them to the year (via `getTableQuery`).
+  - Reports, the trial balance, contact statements and the account ledger default to the year's range.
+- `App\Support\PeriodLock`:
+  - Setting `general.lock_past_years` (default true); the year start comes from `general.fy_start_month`.
+  - `Posting::sync`, `manual` and `reverse` refuse dates before the current fiscal year for authenticated users without the `fiscal_year.edit_closed` permission.
+  - The console and imports are never locked.
+- Also: `config/database.php` sets `engine` to `DB_ENGINE` (default InnoDB), because some hosts default to MyISAM.

@@ -39,6 +39,7 @@ return [
         'printing.manage' => 'إدارة الطباعة والقوالب',
         'backup.manage' => 'النسخ الاحتياطي',
         'activity_log.view' => 'عرض سجل النشاط',
+        'fiscal_year.edit_closed' => 'التعديل في السنوات المقفولة',
         'products.view' => 'عرض المنتجات',
         'products.create' => 'إضافة منتج',
         'products.update' => 'تعديل منتج',

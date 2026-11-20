@@ -112,7 +112,18 @@ it('opens every report, switches grouping and exports to Excel', function () {
 
 it('shows the dashboard with the widgets each role may see', function () {
     $this->get(Dashboard::getUrl())->assertOk();
-    livewire(BusinessOverview::class)->assertOk()->assertSee(__('Sales today'))->assertSee(__('Gross profit this month'));
+    // the current year by default, then a month and a day
+    livewire(BusinessOverview::class)->assertOk()->assertSee(__('Year :year', ['year' => now()->year]))->assertSee(__('Gross profit'));
+    livewire(BusinessOverview::class, ['pageFilters' => ['period' => 'month', 'year' => now()->year, 'month' => now()->month]])
+        ->assertOk()->assertSee(now()->translatedFormat('F Y'));
+    livewire(BusinessOverview::class, ['pageFilters' => ['period' => 'day', 'day' => now()->toDateString()]])->assertOk()->assertSee(now()->format('Y-m-d'));
+    livewire(BusinessOverview::class, ['pageFilters' => ['period' => 'year', 'year' => now()->year - 1]])->assertOk()->assertSee(__('Year :year', ['year' => now()->year - 1]));
+    livewire(SalesTrendChart::class, ['pageFilters' => ['period' => 'month', 'year' => now()->year, 'month' => now()->month]])->assertOk();
+    livewire(SalesTrendChart::class, ['pageFilters' => ['period' => 'day', 'day' => now()->toDateString()]])->assertOk();
+    // the chart's own filters: one branch, grouped by month
+    $branch = Location::query()->firstOrFail();
+    livewire(SalesTrendChart::class)->set('filters', ['location' => $branch->id, 'group' => 'month'])->assertOk()->assertSee($branch->name);
+    livewire(SalesTrendChart::class)->set('filters', ['location' => null, 'group' => 'day'])->assertOk();
     livewire(SalesTrendChart::class)->assertOk();
     livewire(TopProducts::class)->assertOk()->assertSee($this->tea->fullName());
     livewire(LowStock::class)->assertOk()->assertSee($this->tea->fullName());

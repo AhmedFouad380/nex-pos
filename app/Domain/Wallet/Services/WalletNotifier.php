@@ -5,6 +5,7 @@ namespace App\Domain\Wallet\Services;
 use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Wallet\Models\WalletTransaction;
 use App\Models\User;
+use App\Support\BellNotification;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 
@@ -24,9 +25,7 @@ final class WalletNotifier
             ->icon('heroicon-o-device-phone-mobile')->iconColor($in ? 'success' : 'warning')
             ->actions([Action::make('open')->label(__('wallet.notify.open'))->url(self::url($transaction))->markAsRead()]);
 
-        foreach ($this->recipients($transaction->location_id) as $user) {
-            $notification->sendToDatabase($user);
-        }
+        BellNotification::send($notification, $this->recipients($transaction->location_id));
     }
 
     /** @return iterable<User> */

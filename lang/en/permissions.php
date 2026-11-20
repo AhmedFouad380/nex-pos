@@ -39,6 +39,7 @@ return [
         'printing.manage' => 'Printing: manage',
         'backup.manage' => 'Backup: manage',
         'activity_log.view' => 'Activity log: view',
+        'fiscal_year.edit_closed' => 'Fiscal years: edit closed years',
         'products.view' => 'Products: view',
         'products.create' => 'Products: create',
         'products.update' => 'Products: update',

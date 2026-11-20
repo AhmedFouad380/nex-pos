@@ -47,6 +47,9 @@ class PosSettings extends Settings
 
     public array $keyboard_shortcuts;
 
+    /** hours without a sale (during an open shift) before the managers are alerted; 0 = off */
+    public int $idle_alert_hours;
+
     public static function group(): string
     {
         return 'pos';

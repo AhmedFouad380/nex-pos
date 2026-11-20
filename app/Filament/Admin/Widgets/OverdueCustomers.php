@@ -7,7 +7,7 @@ use App\Filament\Admin\Pages\Reports\AgingReportPage;
 
 class OverdueCustomers extends ListWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
 
     public static function canView(): bool
     {

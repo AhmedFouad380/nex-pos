@@ -7,7 +7,7 @@ use App\Filament\Admin\Pages\Reports\SalesReportPage;
 
 class TopProducts extends ListWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 4;
 
     public static function canView(): bool
     {
@@ -16,12 +16,14 @@ class TopProducts extends ListWidget
 
     public function heading(): string
     {
-        return __('Best sellers this month');
+        return __('Best sellers').' — '.$this->dashboardPeriod()['label'];
     }
 
     public function items(): array
     {
-        return app(SalesReport::class)->by('product', $this->period(now()->startOfMonth(), now()))->take(8)
+        $p = $this->dashboardPeriod();
+
+        return app(SalesReport::class)->by('product', $this->period($p['from'], $p['to']))->take(8)
             ->map(fn (array $r) => ['label' => $r['label'], 'hint' => '× '.rtrim(rtrim((string) $r['qty'], '0'), '.'), 'value' => number_format((float) $r['net'], 2)])
             ->all();
     }

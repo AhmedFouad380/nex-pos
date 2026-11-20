@@ -8,6 +8,7 @@ use App\Domain\Foundation\Services\DocumentNumberGenerator;
 use App\Domain\Shared\Enums\DocumentType;
 use App\Support\Decimal;
 use App\Support\DomainException;
+use App\Support\PeriodLock;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -44,6 +45,9 @@ final class Posting
                 return $current; // already right
             }
 
+            // a closed year takes no new, changed or voided movements (PeriodLock)
+            PeriodLock::assertOpen($draft?->date, ...$live->map(fn (JournalEntry $e) => $e->entry_date)->all());
+
             foreach ($live as $entry) {
                 $this->reverse($entry, PostingRules::voidedAt($document) ?? now());
             }
@@ -59,6 +63,8 @@ final class Posting
             throw new DomainException(__('finance.errors.entry_needs_two_lines'));
         }
 
+        PeriodLock::assertOpen($draft->date);
+
         return DB::transaction(fn () => $this->save($draft, null));
     }
 
@@ -68,6 +74,7 @@ final class Posting
         if ($entry->reversed_entry_id !== null || JournalEntry::query()->where('reversed_entry_id', $entry->id)->exists()) {
             throw new DomainException(__('finance.errors.already_reversed'));
         }
+        PeriodLock::assertOpen($entry->entry_date, $at);
 
         return DB::transaction(function () use ($entry, $at) {
             $reversal = JournalEntry::query()->create([

@@ -10,6 +10,7 @@ use App\Filament\Admin\Resources\PurchaseReturns\PurchaseReturnResource;
 use App\Filament\Admin\Resources\Purchases\PurchaseResource;
 use App\Filament\Admin\Resources\SaleReturns\SaleReturnResource;
 use App\Filament\Admin\Resources\Sales\SaleResource;
+use App\Support\FiscalYear;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
@@ -31,8 +32,8 @@ abstract class ContactStatementPage extends Page
     {
         abort_unless(auth()->user()?->can('contacts.ledger'), 403);
         $this->record = $this->resolveRecord($record);
-        $this->from = now()->startOfYear()->toDateString();
-        $this->to = now()->toDateString();
+        $this->from = FiscalYear::range()[0]->toDateString(); // the year chosen in the top bar
+        $this->to = FiscalYear::reportEnd()->toDateString();
     }
 
     public function getTitle(): string
