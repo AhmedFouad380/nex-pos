@@ -17,7 +17,7 @@ return new class extends SettingsMigration
         $this->migrator->add('general.time_format', '24');
         $this->migrator->add('general.fy_start_month', 1);
         $this->migrator->add('general.start_date', null);
-        $this->migrator->add('general.theme_color', 'amber');
+        $this->migrator->add('general.theme_color', 'sky');
         $this->migrator->add('general.default_locale', 'ar');
         $this->migrator->add('general.tax_label_1', 'الرقم الضريبي');
         $this->migrator->add('general.tax_number_1', null);

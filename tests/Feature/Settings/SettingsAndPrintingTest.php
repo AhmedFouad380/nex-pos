@@ -158,7 +158,7 @@ it('keeps settings and printing setup to the right people', function () {
 });
 
 it('colours both panels with the main colour chosen in the settings', function () {
-    expect(Branding::primaryKey())->toBe('amber');
+    expect(Branding::primaryKey())->toBe('sky');
 
     livewire(BusinessSettings::class)->fillForm(['general.theme_color' => 'violet'])->call('save')->assertHasNoFormErrors();
 

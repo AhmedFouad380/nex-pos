@@ -6,6 +6,7 @@
         --pos-ok: #059669; --pos-bad: #e11d48; --pos-warn: #d97706; --pos-radius: 1rem;
         display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(380px, 1fr); gap: 1rem; height: calc(100vh - 7rem); color: var(--pos-text); }
     .dark .pos { --pos-bg: #111827; --pos-soft: #1f2937; --pos-softer: #172033; --pos-border: #374151; --pos-text: #f9fafb; --pos-muted: #9ca3af; }
+    .pos-copyright { position: fixed; left: .5rem; bottom: .25rem; z-index: 5; font-size: .65rem; color: #9ca3af; opacity: .8; pointer-events: none; }
     @media (max-width: 1100px) { .pos { grid-template-columns: 1fr; height: auto; } }
     .pos svg { width: 1.15rem; height: 1.15rem; flex: none; }
     .pos section { background: var(--pos-bg); border: 1px solid var(--pos-border); border-radius: var(--pos-radius); padding: 0.9rem;

@@ -594,4 +594,6 @@
             <iframe x-ref="printFrame" class="pos-print-frame" title="receipt"></iframe>
         </div>
     @endif
+    {{-- the developer's copyright, small in the corner; it never takes clicks from the screen under it --}}
+    <div class="pos-copyright" dir="ltr">&copy; {{ now()->year }} CoreBugs</div>
 </x-filament-panels::page>

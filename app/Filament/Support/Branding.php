@@ -14,6 +14,9 @@ use Illuminate\Support\HtmlString;
  */
 final class Branding
 {
+    /** The main colour of a new install (sky blue). */
+    public const DEFAULT_COLOR = 'sky';
+
     /** Palettes the owner can pick from (key stored in general.theme_color). */
     public const PALETTES = [
         'amber' => Color::Amber, 'orange' => Color::Orange, 'rose' => Color::Rose, 'pink' => Color::Pink,
@@ -30,7 +33,7 @@ final class Branding
     {
         $key = rescue(fn () => self::settings()?->theme_color, null, false);
 
-        return is_string($key) && array_key_exists($key, self::PALETTES) ? $key : 'amber';
+        return is_string($key) && array_key_exists($key, self::PALETTES) ? $key : self::DEFAULT_COLOR;
     }
 
     /** @return array<string, array<int|string, string>> */
