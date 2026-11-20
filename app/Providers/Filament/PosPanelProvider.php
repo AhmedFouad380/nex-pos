@@ -36,6 +36,7 @@ class PosPanelProvider extends PanelProvider
             ->favicon(fn () => Branding::logo())
             ->colors(fn () => Branding::colors())
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, fn (): string => view('filament.pos.admin-button')->render())
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn (): string => view('filament.copyright')->render())
             ->font('Cairo')
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->topNavigation()

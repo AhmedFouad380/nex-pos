@@ -21,3 +21,12 @@ it('sends a signed-in cashier to the point of sale', function () {
 
     $this->actingAs($cashier)->get('/')->assertRedirect('/pos');
 });
+
+it('shows the CoreBugs copyright on the login screens and the admin pages', function () {
+    $this->get('/admin/login')->assertOk()->assertSee('CoreBugs');
+    $this->get('/pos/login')->assertOk()->assertSee('CoreBugs');
+
+    $admin = User::factory()->create();
+    $admin->assignRole(User::SUPER_ADMIN_ROLE);
+    $this->actingAs($admin)->get('/admin')->assertOk()->assertSee('CoreBugs');
+});

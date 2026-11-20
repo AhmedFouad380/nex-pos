@@ -43,6 +43,8 @@ class AdminPanelProvider extends PanelProvider
             ->navigationGroups(NavigationGroup::class)
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, fn (): string => view('filament.admin.pos-button')->render())
             // the fiscal year shown everywhere, and a reminder while an older one is open
+            ->renderHook(PanelsRenderHook::FOOTER, fn (): string => view('filament.copyright')->render())
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn (): string => view('filament.copyright')->render())
             ->renderHook(PanelsRenderHook::GLOBAL_SEARCH_BEFORE, fn (): string => view('filament.admin.fiscal-year.switcher')->render())
             ->renderHook(PanelsRenderHook::CONTENT_START, fn (): string => view('filament.admin.fiscal-year.banner')->render())
             // "?" on every page that has a help file in resources/help/

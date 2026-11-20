@@ -21,7 +21,7 @@ await page.pdf({
     displayHeaderFooter: true,
     headerTemplate: '<span></span>',
     footerTemplate: `<div style="width:100%;font:9px Tahoma,sans-serif;color:#9ca3af;text-align:center;direction:rtl">
-        صفحة <span class="pageNumber"></span> من <span class="totalPages"></span></div>`,
+        صفحة <span class="pageNumber"></span> من <span class="totalPages"></span> · © ${new Date().getFullYear()} CoreBugs</div>`,
 });
 await browser.close();
 console.log(`✓ ${OUT}`);
