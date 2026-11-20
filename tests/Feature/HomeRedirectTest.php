@@ -23,8 +23,8 @@ it('sends a signed-in cashier to the point of sale', function () {
 });
 
 it('shows the CoreBugs copyright on the login screens and the admin pages', function () {
-    $this->get('/admin/login')->assertOk()->assertSee('CoreBugs');
-    $this->get('/pos/login')->assertOk()->assertSee('CoreBugs');
+    expect(substr_count($this->get('/admin/login')->assertOk()->getContent(), 'CoreBugs'))->toBe(1);
+    expect(substr_count($this->get('/pos/login')->assertOk()->getContent(), 'CoreBugs'))->toBe(1);
 
     $admin = User::factory()->create();
     $admin->assignRole(User::SUPER_ADMIN_ROLE);
