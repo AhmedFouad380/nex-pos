@@ -1,0 +1,68 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/*
+ * Brand polish for both panels. Colours come from the panel palette (--primary-*, --success-*, …),
+ * which follows the colour chosen in the business settings.
+ */
+
+/* ---------- top bar: a hairline in the brand colour ---------- */
+.fi-topbar {
+    border-bottom: 1px solid color-mix(in oklab, var(--primary-500) 30%, transparent);
+}
+
+/* ---------- sidebar ---------- */
+.fi-sidebar {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--primary-500) 4%, white) 0%, white 180px);
+}
+.dark .fi-sidebar {
+    background: linear-gradient(180deg, color-mix(in oklab, var(--primary-500) 7%, var(--gray-950)) 0%, var(--gray-950) 200px);
+}
+.fi-sidebar-group-label {
+    color: var(--primary-700);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+.dark .fi-sidebar-group-label {
+    color: var(--primary-300);
+}
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background: color-mix(in oklab, var(--primary-500) 14%, transparent);
+    box-shadow: inset 3px 0 0 var(--primary-500);
+}
+[dir='rtl'] .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    box-shadow: inset -3px 0 0 var(--primary-500);
+}
+.fi-sidebar-item-btn:hover .fi-sidebar-item-icon {
+    color: var(--primary-500);
+}
+
+/* ---------- sections & tables ---------- */
+.fi-section {
+    border-radius: 0.9rem;
+}
+.fi-ta-header-cell {
+    background: color-mix(in oklab, var(--gray-500) 5%, transparent);
+}
+.fi-ta-row:hover {
+    background: color-mix(in oklab, var(--primary-500) 4%, transparent);
+}
+
+/* ---------- login page ---------- */
+.fi-simple-layout {
+    background:
+        radial-gradient(circle at 15% 20%, color-mix(in oklab, var(--primary-400) 35%, transparent) 0, transparent 45%),
+        radial-gradient(circle at 85% 80%, color-mix(in oklab, var(--primary-600) 30%, transparent) 0, transparent 45%),
+        var(--gray-50);
+}
+.dark .fi-simple-layout {
+    background:
+        radial-gradient(circle at 15% 20%, color-mix(in oklab, var(--primary-600) 30%, transparent) 0, transparent 45%),
+        radial-gradient(circle at 85% 80%, color-mix(in oklab, var(--primary-800) 35%, transparent) 0, transparent 45%),
+        var(--gray-950);
+}
+.fi-simple-main {
+    box-shadow: 0 20px 50px -24px rgb(0 0 0 / 0.3);
+}

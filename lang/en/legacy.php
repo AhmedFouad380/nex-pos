@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'errors' => [
+        'file_not_found' => 'File not found: :file',
+        'docker_missing' => 'Docker is not available here. Start Docker or import a ready package.',
+        'server_not_ready' => 'SQL Server did not start in time.',
+        'cannot_write' => 'Cannot write :file',
+        'sql_failed' => 'SQL failed: :message',
+        'bad_package' => 'This is not a valid package of the old system (manifest.json is missing).',
+        'already_running' => 'Another import is running.',
+    ],
+    'warnings' => [
+        'recovered_header' => 'Document :doc has :lines lines but no header in the old system; its header was taken from the last saved version in the history. Please review it.',
+        'shift_without_drawer' => 'Shift :id belongs to a missing POS terminal.',
+        'document_skipped' => 'Skipped :doc: :reason',
+        'unknown_item' => 'Unknown item (ItemId :id) in :doc.',
+        'pos_without_branch' => 'POS terminal ":name" has no existing branch.',
+        'chart_kept' => 'The current chart already has entries, so the old accounts were merged into it instead of replacing it.',
+    ],
+    'register_name' => 'Drawer :name',
+    'opening_entry' => 'Opening entry (from the old system)',
+    'shift_left_open' => 'Was still open in the old system',
+    'unknown_supplier' => 'Unspecified supplier (old system)',
+    'stock_count' => 'Stock count (old system)',
+    'manual_entry' => 'Journal voucher :number (old system)',
+    'unknown_contact' => 'Unspecified contact (old system)',
+    'custody_name' => 'Custody — :name',
+    'shift_figures' => 'Old system: expected :expected, handed over :counted',
+    'group_sales' => 'Sales (general + cash + credit)',
+    'group_cogs' => 'Cost of sales (all stores)',
+    'group_inventory' => 'Stock (all stores)',
+    'group_cash' => 'Cash (boxes + cashier custody)',
+    'group_contacts' => ':name (all sub-accounts)',
+];

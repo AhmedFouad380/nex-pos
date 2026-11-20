@@ -1,0 +1,35 @@
+<?php
+
+return [
+    'errors' => [
+        'file_not_found' => 'الملف غير موجود: :file',
+        'docker_missing' => 'Docker غير متاح على هذا الجهاز. شغّل Docker أو استورد ملف package جاهز.',
+        'server_not_ready' => 'SQL Server لم يبدأ في الوقت المحدد.',
+        'cannot_write' => 'لا يمكن الكتابة في :file',
+        'sql_failed' => 'فشل أمر SQL: :message',
+        'bad_package' => 'الملف ليس package صالحًا من النظام القديم (manifest.json غير موجود).',
+        'already_running' => 'يوجد استيراد آخر قيد التنفيذ.',
+    ],
+    'warnings' => [
+        'recovered_header' => 'المستند :doc له :lines سطر بدون رأس في النظام القديم، فتم أخذ رأسه من آخر نسخة في سجل التعديلات. راجعه.',
+        'shift_without_drawer' => 'الوردية :id مرتبطة بجهاز كاشير غير موجود.',
+        'document_skipped' => 'تم تخطي :doc: :reason',
+        'unknown_item' => 'صنف غير معروف (ItemId :id) في :doc.',
+        'pos_without_branch' => 'جهاز الكاشير ":name" غير مرتبط بفرع موجود.',
+        'chart_kept' => 'شجرة الحسابات الحالية عليها قيود، فتم دمج حسابات النظام القديم معها بدل استبدالها.',
+    ],
+    'register_name' => 'درج :name',
+    'opening_entry' => 'القيد الافتتاحي (من النظام القديم)',
+    'shift_left_open' => 'كانت مفتوحة في النظام القديم',
+    'unknown_supplier' => 'مورد غير محدد (من النظام القديم)',
+    'stock_count' => 'جرد المخزون (من النظام القديم)',
+    'manual_entry' => 'قيد يومية رقم :number (من النظام القديم)',
+    'unknown_contact' => 'جهة غير محددة (من النظام القديم)',
+    'custody_name' => 'عهدة :name',
+    'shift_figures' => 'من النظام القديم: المتوقع :expected، المُسلَّم :counted',
+    'group_sales' => 'المبيعات (عام + نقدي + آجل)',
+    'group_cogs' => 'تكلفة المبيعات (كل المخازن)',
+    'group_inventory' => 'المخزون (كل المخازن)',
+    'group_cash' => 'النقدية (الخزائن + عُهد الكاشير)',
+    'group_contacts' => ':name (كل الحسابات الفرعية)',
+];
