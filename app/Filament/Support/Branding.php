@@ -69,15 +69,22 @@ final class Branding
         return rescue(fn () => self::settings()?->logoDataUri(), null, false);
     }
 
-    /** Logo + business name side by side (or the name alone) for the top bar. */
-    public static function brand(): HtmlString
-    {
-        $name = e(self::name());
-        $logo = self::logo();
+    /** The product name: browser tabs, the top bar and the login screens. */
+    public const SYSTEM_NAME = 'Coreon';
 
-        return new HtmlString($logo
-            ? "<span style=\"display:inline-flex;align-items:center;gap:.6rem\"><img src=\"{$logo}\" alt=\"\" style=\"height:2.1rem;width:auto;border-radius:.4rem\">"
-                ."<span style=\"font-weight:700;font-size:1.05rem\">{$name}</span></span>"
-            : "<span style=\"font-weight:700;font-size:1.1rem\">{$name}</span>");
+    /** The Coreon logo (dark letters, or white ones for dark mode) and the business name beside it, for the top bar. */
+    public static function brand(bool $dark = false): HtmlString
+    {
+        $logo = asset($dark ? 'images/brand/coreon-logo-dark.png' : 'images/brand/coreon-logo.png');
+        $business = rescue(fn () => self::settings()?->business_name, null, false);
+        $name = $business ? '<span style="font-weight:600;font-size:.95rem;opacity:.75;border-inline-start:1px solid currentColor;padding-inline-start:.6rem">'.e($business).'</span>' : '';
+
+        return new HtmlString('<span style="display:inline-flex;align-items:center;gap:.6rem" dir="ltr">'
+            .'<img src="'.e($logo).'" alt="'.self::SYSTEM_NAME.'" style="height:1.9rem;width:auto">'.$name.'</span>');
+    }
+
+    public static function icon(): string
+    {
+        return asset('images/brand/coreon-icon.png');
     }
 }
