@@ -48,7 +48,7 @@ return [
         'products.view_purchase_price' => 'Products: view purchase price',
         'catalog.manage' => 'Catalog: manage',
         'discounts.manage' => 'Discounts: manage',
-        'labels.print' => 'Labels: print',
+        'labels.print' => 'Barcode labels: print',
         'stock.view' => 'Stock: view',
         'stock_adjustments.view' => 'Stock adjustments: view',
         'stock_adjustments.create' => 'Stock adjustments: create',

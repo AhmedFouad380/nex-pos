@@ -128,3 +128,15 @@ it('never lets the walk-in customer be deleted', function () {
     expect(CustomerResource::canDelete($walkIn))->toBeFalse()
         ->and(CustomerResource::canEdit($walkIn))->toBeTrue();
 });
+
+it('shows the barcode labels button on a purchase only with the labels permission', function () {
+    $purchase = makePurchase(makeSupplier(), [[$this->item, 3, 5]]);
+    $clerk = User::factory()->create();
+    $clerk->givePermissionTo(['admin.access', 'purchases.view', 'locations.access_all']);
+    $this->actingAs($clerk);
+
+    livewire(PurchasePages\ViewPurchase::class, ['record' => $purchase->id])->assertActionHidden('labels');
+
+    $clerk->givePermissionTo('labels.print');
+    livewire(PurchasePages\ViewPurchase::class, ['record' => $purchase->id])->assertActionVisible('labels');
+});

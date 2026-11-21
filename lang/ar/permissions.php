@@ -48,7 +48,7 @@ return [
         'products.view_purchase_price' => 'عرض سعر الشراء',
         'catalog.manage' => 'إدارة الوحدات والتصنيفات والماركات والضرائب',
         'discounts.manage' => 'إدارة الخصومات',
-        'labels.print' => 'طباعة الباركود',
+        'labels.print' => 'طباعة ملصقات الباركود',
         'stock.view' => 'عرض المخزون',
         'stock_adjustments.view' => 'عرض تسويات المخزون',
         'stock_adjustments.create' => 'إضافة تسوية مخزون',
