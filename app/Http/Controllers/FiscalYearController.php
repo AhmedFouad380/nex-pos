@@ -14,9 +14,7 @@ class FiscalYearController extends Controller
         $year = (int) $request->input('year');
         abort_unless(array_key_exists($year, FiscalYear::years()), 422);
 
-        $year === FiscalYear::current()
-            ? $request->session()->forget(FiscalYear::SESSION_KEY)
-            : $request->session()->put(FiscalYear::SESSION_KEY, $year);
+        FiscalYear::select($year);
 
         return redirect()->back();
     }

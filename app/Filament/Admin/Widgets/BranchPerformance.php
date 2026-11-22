@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Widgets;
 use App\Domain\Reporting\Services\BranchSalesMonitor;
 use App\Filament\Admin\Widgets\Concerns\DashboardScope;
 use App\Settings\PosSettings;
+use App\Support\FiscalYear;
 use Filament\Widgets\Widget;
 
 /** أداء الفروع اليوم: each branch's sales so far against its usual for this weekday and hour, and how long since its last sale. */
@@ -20,9 +21,10 @@ class BranchPerformance extends Widget
 
     protected ?string $pollingInterval = '300s';
 
+    /** today's figures: only while looking at the current year */
     public static function canView(): bool
     {
-        return (bool) auth()->user()?->can('dashboard.view');
+        return FiscalYear::isCurrent() && (bool) auth()->user()?->can('dashboard.view');
     }
 
     /** @return list<array<string, mixed>> */

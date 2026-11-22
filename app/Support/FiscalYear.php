@@ -75,6 +75,12 @@ final class FiscalYear
         return is_numeric($year) ? (int) $year : self::current();
     }
 
+    /** Look at this year from now on (this login): the top-bar switcher and the dashboard's year filter. */
+    public static function select(int $year): void
+    {
+        $year === self::current() ? session()->forget(self::SESSION_KEY) : session()->put(self::SESSION_KEY, $year);
+    }
+
     public static function isCurrent(): bool
     {
         return self::selected() === self::current();

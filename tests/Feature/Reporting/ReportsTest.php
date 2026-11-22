@@ -18,12 +18,14 @@ use App\Filament\Admin\Pages\Reports\PurchasesReportPage;
 use App\Filament\Admin\Pages\Reports\SalesReportPage;
 use App\Filament\Admin\Pages\Reports\StockReportPage;
 use App\Filament\Admin\Pages\Reports\TaxReportPage;
+use App\Filament\Admin\Widgets\BranchPerformance;
 use App\Filament\Admin\Widgets\BusinessOverview;
 use App\Filament\Admin\Widgets\LowStock;
 use App\Filament\Admin\Widgets\OverdueCustomers;
 use App\Filament\Admin\Widgets\SalesTrendChart;
 use App\Filament\Admin\Widgets\TopProducts;
 use App\Models\User;
+use App\Support\FiscalYear;
 use Filament\Facades\Filament;
 
 use function Pest\Livewire\livewire;
@@ -137,4 +139,17 @@ it('shows the dashboard with the widgets each role may see', function () {
     $this->get(Dashboard::getUrl())->assertOk();
     $this->get(SalesReportPage::getUrl())->assertForbidden();
     $this->get(StockReportPage::getUrl())->assertOk();
+});
+
+it('keeps the dashboard year and the top-bar year the same', function () {
+    $last = now()->year - 1;
+    session()->put(FiscalYear::SESSION_KEY, $last); // picked in the top-bar switcher
+
+    livewire(Dashboard::class)->assertSet('filters.year', $last);
+    expect(BranchPerformance::canView())->toBeFalse(); // "today" has no place in a past year
+
+    // picked in the dashboard filter: the whole app follows
+    livewire(Dashboard::class)->set('filters.year', (string) now()->year)->assertRedirect(Dashboard::getUrl());
+    expect(FiscalYear::selected())->toBe(now()->year)->and(BranchPerformance::canView())->toBeTrue();
+    livewire(Dashboard::class)->assertSet('filters.year', now()->year);
 });
