@@ -8,6 +8,7 @@ use App\Domain\Finance\Enums\PaymentDirection;
 use App\Filament\Actions\ActivityHistoryAction;
 use App\Filament\Admin\Resources\EmployeeAdvances\AdvanceActions;
 use App\Filament\Admin\Resources\Employees\EmployeeResource;
+use App\Filament\Admin\Resources\Employees\Widgets\EmployeeOverview;
 use App\Filament\Admin\Support\ContactPageActions;
 use App\Filament\Admin\Support\PaymentActions;
 use Filament\Actions\Action;
@@ -18,6 +19,16 @@ use Filament\Resources\Pages\ViewRecord;
 class ViewEmployee extends ViewRecord
 {
     protected static string $resource = EmployeeResource::class;
+
+    protected function getHeaderWidgets(): array
+    {
+        return [EmployeeOverview::class];
+    }
+
+    public function getHeaderWidgetsColumns(): int|array
+    {
+        return 1;
+    }
 
     protected function getHeaderActions(): array
     {

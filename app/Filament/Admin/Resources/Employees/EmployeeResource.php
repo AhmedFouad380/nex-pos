@@ -95,6 +95,15 @@ class EmployeeResource extends ContactResource
         ];
     }
 
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\PaymentsRelationManager::class,
+            RelationManagers\AdvancesRelationManager::class,
+            RelationManagers\PayrollLinesRelationManager::class,
+        ];
+    }
+
     public static function getPages(): array
     {
         return [

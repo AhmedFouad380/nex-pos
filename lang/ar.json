@@ -844,5 +844,17 @@
     "Alert after hours without a sale": "تنبيه بعد ساعات بلا مبيعات",
     "hours": "ساعات",
     "While a branch has an open shift. 0 turns the alert off.": "أثناء وجود وردية مفتوحة في الفرع. 0 يوقف التنبيه.",
-    "Not started yet": "لم يبدأ البيع"
+    "Not started yet": "لم يبدأ البيع",
+    "Vouchers": "السندات",
+    "Salaries": "المرتبات",
+    "Paid to the employee": "صرفنا له",
+    "Received from the employee": "استلمنا منه",
+    "Net salaries": "صافي المرتبات",
+    "Purchases from the store": "مشترياته من المحل",
+    "Balance now": "الرصيد الآن",
+    "Owed by the employee": "مستحق على الموظف",
+    "Owed to the employee": "مستحق للموظف",
+    ":count voucher|:count vouchers": "{0} لا توجد سندات|{1} سند واحد|{2} سندان|[3,10] :count سندات|[11,*] :count سندًا",
+    ":count payroll|:count payrolls": "{0} لا توجد مسيرات|{1} مسير واحد|{2} مسيران|[3,10] :count مسيرات|[11,*] :count مسيرًا",
+    ":count invoice|:count invoices": "{0} لا توجد فواتير|{1} فاتورة واحدة|{2} فاتورتان|[3,10] :count فواتير|[11,*] :count فاتورة"
 }

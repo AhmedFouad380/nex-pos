@@ -1,6 +1,7 @@
 <?php
 
 use App\Domain\CRM\Models\Contact;
+use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Foundation\Models\Location;
 use App\Domain\Payroll\Actions\GiveAdvance;
 use App\Domain\Payroll\Enums\PayrollStatus;
@@ -13,6 +14,11 @@ use App\Filament\Admin\Resources\Employees\Pages\EditEmployee;
 use App\Filament\Admin\Resources\Employees\Pages\EmployeeStatement;
 use App\Filament\Admin\Resources\Employees\Pages\ListEmployees;
 use App\Filament\Admin\Resources\Employees\Pages\ViewEmployee;
+use App\Filament\Admin\Resources\Employees\RelationManagers\AdvancesRelationManager;
+use App\Filament\Admin\Resources\Employees\RelationManagers\PaymentsRelationManager;
+use App\Filament\Admin\Resources\Employees\RelationManagers\PayrollLinesRelationManager;
+use App\Filament\Admin\Resources\Employees\Widgets\EmployeeOverview;
+use App\Filament\Admin\Resources\PaymentVouchers\Pages\ListPaymentVouchers;
 use App\Filament\Admin\Resources\PayrollRuns\Pages\CreatePayrollRun;
 use App\Filament\Admin\Resources\PayrollRuns\Pages\EditPayrollRun;
 use App\Filament\Admin\Resources\PayrollRuns\Pages\ListPayrollRuns;
@@ -124,4 +130,29 @@ it('hides payroll from users without the permission', function () {
 
     livewire(ListPayrollRuns::class)->assertForbidden();
     livewire(ListEmployeeAdvances::class)->assertForbidden();
+});
+
+it('shows an advance as a payment voucher, and the employee page lists their vouchers, advances and figures', function () {
+    $employee = makeEmployee('5000');
+    $advance = app(GiveAdvance::class)->handle(['contact_id' => $employee->id, 'location_id' => $this->location->id,
+        'amount' => 750, 'installment_amount' => 250, 'payment_method_id' => cashMethodId()]);
+    $voucher = $advance->payment;
+
+    // the advance is a payment voucher like any other: in the payment vouchers list, paid to the employee
+    expect($voucher->direction)->toBe(PaymentDirection::Out)->and($voucher->contact_id)->toBe($employee->id)
+        ->and((string) $voucher->amount)->toBe('750.0000');
+    livewire(ListPaymentVouchers::class)->assertCanSeeTableRecords([$voucher]);
+
+    // the employee page: the year's figures, then the vouchers, advances and salaries tabs
+    livewire(ViewEmployee::class, ['record' => $employee->id])->assertOk();
+    livewire(EmployeeOverview::class, ['record' => $employee])->assertOk()
+        ->assertSee(__('Paid to the employee'))->assertSee('750.00')->assertSee(__('Open advances'));
+    livewire(PaymentsRelationManager::class, ['ownerRecord' => $employee, 'pageClass' => ViewEmployee::class])
+        ->assertOk()->assertCanSeeTableRecords([$voucher]);
+    livewire(AdvancesRelationManager::class, ['ownerRecord' => $employee, 'pageClass' => ViewEmployee::class])
+        ->assertOk()->assertCanSeeTableRecords([$advance])->assertSee($voucher->number);
+    livewire(PayrollLinesRelationManager::class, ['ownerRecord' => $employee, 'pageClass' => ViewEmployee::class])->assertOk();
+
+    // and the account statement shows the voucher
+    livewire(EmployeeStatement::class, ['record' => $employee->id])->assertOk()->assertSee($voucher->number);
 });
