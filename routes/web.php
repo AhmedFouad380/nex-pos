@@ -4,6 +4,7 @@ use App\Http\Controllers\DocumentPrintController;
 use App\Http\Controllers\FiscalYearController;
 use App\Http\Controllers\LabelPrintController;
 use App\Http\Controllers\PayrollPrintController;
+use App\Http\Controllers\StockCountPrintController;
 use App\Http\Controllers\UserGuideController;
 use App\Http\Controllers\VoucherPrintController;
 use App\Models\User;
@@ -30,6 +31,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/print/payroll/{run}', [PayrollPrintController::class, 'sheet'])->name('payroll.print');
     Route::get('/print/payroll/{run}/payslips', [PayrollPrintController::class, 'payslips'])->name('payroll.payslips');
     Route::get('/guide/print', UserGuideController::class)->name('guide.print');
+    Route::get('/print/stock-counts/{count}', StockCountPrintController::class)->name('stock-counts.print');
     Route::post('/fiscal-year', FiscalYearController::class)->name('fiscal-year.switch');
 });
 Route::middleware(['web', 'auth'])->get('/admin/vouchers/{payment}/print', VoucherPrintController::class)->name('vouchers.print');

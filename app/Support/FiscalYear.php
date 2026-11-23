@@ -8,6 +8,7 @@ use App\Domain\Finance\Models\Expense;
 use App\Domain\Finance\Models\JournalEntry;
 use App\Domain\Finance\Models\Payment;
 use App\Domain\Inventory\Models\StockAdjustment;
+use App\Domain\Inventory\Models\StockCount;
 use App\Domain\Inventory\Models\StockTransfer;
 use App\Domain\Payroll\Models\EmployeeAdvance;
 use App\Domain\Payroll\Models\PayrollRun;
@@ -44,6 +45,7 @@ final class FiscalYear
         AccountTransfer::class => 'transferred_at',
         StockAdjustment::class => 'adjusted_at',
         StockTransfer::class => 'transfer_date',
+        StockCount::class => 'started_at',
         CashSession::class => 'opened_at',
         EmployeeAdvance::class => 'advance_date',
         PayrollRun::class => 'period',

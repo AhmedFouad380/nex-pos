@@ -3,6 +3,7 @@
 namespace App\Domain\Inventory\Models;
 
 use App\Domain\Catalog\Models\Variation;
+use App\Support\Decimal;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -33,6 +34,16 @@ class StockCountItem extends Model
             'difference' => 'decimal:4',
             'unit_cost' => 'decimal:4',
         ];
+    }
+
+    /** Records the quantity found on the shelf (null = not counted yet). */
+    public function record(string|int|float|null $counted): void
+    {
+        $counted = $counted === null || $counted === '' ? null : Decimal::of($counted);
+        $this->update([
+            'counted_qty' => $counted === null ? null : Decimal::toDb($counted),
+            'difference' => $counted === null ? 0 : Decimal::toDb($counted->minus(Decimal::of($this->expected_qty))),
+        ]);
     }
 
     /** @return BelongsTo<StockCount, $this> */

@@ -10,6 +10,9 @@ return [
         'invalid_status' => 'This action is not allowed on a document with status ":status".',
         'already_voided' => 'This document is already voided.',
         'no_items' => 'Add at least one item.',
+        'count_open' => 'This branch already has an open stock count (:number). Finish or cancel it first.',
+        'count_empty' => 'No stock-tracked items in this scope.',
+        'count_nothing' => 'No counted quantity has been entered yet.',
         'non_positive_qty' => 'Quantity must be greater than zero.',
     ],
 ];
