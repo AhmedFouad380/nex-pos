@@ -143,8 +143,12 @@ class SaleResource extends Resource
                 Avatar::column(TextColumn::make('customer.name'))->label(__('Customer'))->searchable(),
                 TextColumn::make('status')->label(__('Status'))->badge(),
                 TextColumn::make('total')->label(__('Total'))->numeric(2)->sortable(),
-                TextColumn::make('due_total')->label(__('Due'))->numeric(2)->color(fn ($state) => (float) $state > 0 ? 'danger' : null),
-                TextColumn::make('payment_status')->label(__('Payment status'))->badge(),
+                // a voided invoice owes nothing, whatever its payments were
+                TextColumn::make('due_total')->label(__('Due'))->numeric(2)
+                    ->state(fn (Sale $r) => $r->voided_at !== null ? null : $r->due_total)
+                    ->color(fn ($state) => (float) $state > 0 ? 'danger' : null),
+                TextColumn::make('payment_status')->label(__('Payment status'))->badge()
+                    ->state(fn (Sale $r) => $r->voided_at !== null ? null : $r->payment_status),
                 TextColumn::make('creator.name')->label(__('Cashier'))->toggleable(),
                 TextColumn::make('location.name')->label(__('Location'))->toggleable(isToggledHiddenByDefault: true),
             ])
