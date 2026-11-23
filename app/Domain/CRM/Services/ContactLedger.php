@@ -10,6 +10,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\LazyCollection;
 
 /**
  * Account statement (كشف حساب) of a customer / supplier, built straight from the documents.
@@ -102,6 +103,21 @@ final class ContactLedger
             ->selectRaw('coalesce(sum(debit), 0) as d, coalesce(sum(credit), 0) as c')->first();
 
         return Decimal::toDb(Decimal::of($totals->d)->minus(Decimal::of($totals->c)));
+    }
+
+    /**
+     * The movements that raised what the contact owes us (receivable) or what we owe them (payable), newest first:
+     * entry_date, amount. Debt aging spreads the balance over them.
+     *
+     * @return LazyCollection<int, \stdClass>
+     */
+    public function charges(Contact $contact, bool $receivable): LazyCollection
+    {
+        $column = $receivable ? 'debit' : 'credit';
+
+        return DB::query()->fromSub($this->entries($contact), 'e')->where($column, '>', 0)
+            ->orderByDesc('entry_date')->orderByDesc('recorded_at')->orderByDesc('ref_id')
+            ->select(['entry_date', DB::raw("{$column} as amount")])->cursor();
     }
 
     /** UNION ALL of every document that moves the contact's balance. */

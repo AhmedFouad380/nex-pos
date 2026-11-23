@@ -28,6 +28,7 @@ use App\Domain\Purchasing\Enums\PurchaseStatus;
 use App\Domain\Purchasing\Models\Purchase;
 use App\Domain\Purchasing\Models\PurchaseItem;
 use App\Domain\Purchasing\Models\PurchaseReturn;
+use App\Domain\Purchasing\Services\LastPurchasePrice;
 use App\Domain\Sales\Enums\SaleChannel;
 use App\Domain\Sales\Enums\SaleStatus;
 use App\Domain\Sales\Models\Sale;
@@ -82,7 +83,11 @@ final class DocumentsStage implements Stage
 
     private ?int $unknownSupplier = null;
 
-    public function __construct(private readonly StockLedger $stock, private readonly Posting $posting) {}
+    public function __construct(
+        private readonly StockLedger $stock,
+        private readonly Posting $posting,
+        private readonly LastPurchasePrice $lastPrices,
+    ) {}
 
     public function name(): string
     {
@@ -119,6 +124,9 @@ final class DocumentsStage implements Stage
                 $this->context->progress($this->name(), $done, $total);
             }
         });
+
+        // the old item card keeps a purchase price that its purchases never updated: take it from the latest purchase
+        $this->context->count($this->name(), 'purchase_prices', $this->lastPrices->refresh());
     }
 
     private function load(): void

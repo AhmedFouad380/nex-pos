@@ -3,6 +3,9 @@
 namespace App\Domain\Reporting\Services;
 
 use App\Domain\Catalog\Models\Variation;
+use App\Domain\CRM\Enums\ContactType;
+use App\Domain\CRM\Models\Contact;
+use App\Domain\CRM\Services\ContactLedger;
 use App\Domain\Finance\Enums\AccountSubType;
 use App\Domain\Reporting\Data\ReportFilter;
 use App\Domain\Sales\Enums\SaleStatus;
@@ -156,53 +159,70 @@ final class OperationsReports
     }
 
     /**
-     * Open amounts per customer (receivable) or supplier (payable), split by how long they are overdue.
+     * What each customer owes (receivable) or each supplier is owed (payable), split by how old the debt is.
+     * The account balance is what is really owed. Payments pay off the oldest debt first, so the balance is
+     * spread over the newest movements that raised it: invoices, money paid out to them, opening balances,
+     * journal entries. A settled account doesn't show, even with invoices that no payment was linked to
+     * (most vouchers of the old system). For one branch: that branch's open invoices, up to the balance.
      *
      * @param  list<int>|null  $locationIds
      * @return list<array<string, mixed>>
      */
     public function aging(string $side, ?array $locationIds = null): array
     {
-        $today = now()->toDateString();
         $receivable = $side === 'receivable';
-        $docs = $receivable
-            ? DB::table('sales')->whereNull('voided_at')->where('status', SaleStatus::Final->value)->where('due_total', '>', 0)
-                ->when($locationIds !== null, fn ($q) => $q->whereIn('location_id', $locationIds))
-                ->selectRaw('customer_id as contact_id, coalesce(due_date, date(sale_date)) as due_on, due_total as amount')
-            : DB::table('purchases')->whereNull('voided_at')->where('due_total', '>', 0)
-                ->when($locationIds !== null, fn ($q) => $q->whereIn('location_id', $locationIds))
-                ->selectRaw('supplier_id as contact_id, coalesce(due_date, date(purchase_date)) as due_on, due_total * exchange_rate as amount');
-        $docs->unionAll(DB::table('contact_opening_balances')->whereNull('voided_at')->where('due_total', '>', 0)
-            ->where('direction', $side)->selectRaw('contact_id, as_of_date as due_on, due_total as amount'));
+        $types = $receivable ? [ContactType::Customer->value, ContactType::Both->value] : [ContactType::Supplier->value, ContactType::Both->value];
+        $contacts = Contact::query()->whereIn('type', $types)->where('balance', $receivable ? '>' : '<', 0)->get(['id', 'name', 'mobile', 'balance']);
+        $branchDocs = $locationIds !== null ? $this->openDocuments($receivable, $locationIds) : null;
+        $ledger = app(ContactLedger::class);
+        $today = strtotime(now()->toDateString());
 
-        $buckets = ['current' => 30, 'b31' => 60, 'b61' => 90];
-        $grouped = DB::query()->fromSub($docs, 'd')->get()->groupBy('contact_id');
-        $contacts = DB::table('contacts')->whereIn('id', $grouped->keys())->get(['id', 'name', 'mobile', 'balance'])->keyBy('id');
-
-        return $grouped->map(function (Collection $items, $contactId) use ($today, $buckets, $contacts) {
+        return $contacts->map(function (Contact $contact) use ($receivable, $branchDocs, $ledger, $today) {
             $row = ['current' => BigDecimal::zero(), 'b31' => BigDecimal::zero(), 'b61' => BigDecimal::zero(), 'b90' => BigDecimal::zero()];
-            foreach ($items as $item) {
-                $days = (int) floor((strtotime($today) - strtotime((string) $item->due_on)) / 86400);
-                $bucket = 'b90';
-                foreach ($buckets as $name => $limit) {
-                    if ($days <= $limit) {
-                        $bucket = $name;
-                        break;
-                    }
+            $owed = Decimal::of($contact->balance)->abs();
+            $charges = $branchDocs !== null ? ($branchDocs[$contact->id] ?? collect()) : $ledger->charges($contact, $receivable);
+            foreach ($charges as $charge) {
+                if (! $owed->isPositive()) {
+                    break;
                 }
-                $row[$bucket] = $row[$bucket]->plus(Decimal::of((string) $item->amount));
+                $amount = BigDecimal::min(Decimal::of((string) $charge->amount), $owed);
+                $owed = $owed->minus($amount);
+                $days = (int) floor(($today - strtotime(substr((string) $charge->entry_date, 0, 10))) / 86400);
+                $bucket = match (true) {
+                    $days <= 30 => 'current',
+                    $days <= 60 => 'b31',
+                    $days <= 90 => 'b61',
+                    default => 'b90',
+                };
+                $row[$bucket] = $row[$bucket]->plus($amount);
             }
             $total = array_reduce($row, fn (BigDecimal $c, BigDecimal $v) => $c->plus($v), BigDecimal::zero());
-            $contact = $contacts[$contactId] ?? null;
 
             return [
-                'label' => $contact->name ?? '—',
-                'mobile' => $contact->mobile ?? null,
+                'label' => $contact->name,
+                'mobile' => $contact->mobile,
                 ...array_map(fn (BigDecimal $v) => Decimal::toDb($v, 2), $row),
                 'total' => Decimal::toDb($total, 2),
-                'balance' => Decimal::toDb(abs((float) ($contact->balance ?? 0)), 2),
+                'balance' => Decimal::toDb(Decimal::of($contact->balance)->abs(), 2),
             ];
-        })->sortByDesc(fn ($r) => (float) $r['total'])->values()->all();
+        })->filter(fn ($r) => (float) $r['total'] > 0)->sortByDesc(fn ($r) => (float) $r['total'])->values()->all();
+    }
+
+    /**
+     * Open invoices of the given branches per contact, newest first (entry_date, amount).
+     *
+     * @param  list<int>  $locationIds
+     * @return Collection<int|string, Collection<int, \stdClass>>
+     */
+    private function openDocuments(bool $receivable, array $locationIds): Collection
+    {
+        $docs = $receivable
+            ? DB::table('sales')->whereNull('voided_at')->where('status', SaleStatus::Final->value)->where('due_total', '>', 0)
+                ->whereIn('location_id', $locationIds)->selectRaw('customer_id as contact_id, sale_date as entry_date, due_total as amount')
+            : DB::table('purchases')->whereNull('voided_at')->where('due_total', '>', 0)
+                ->whereIn('location_id', $locationIds)->selectRaw('supplier_id as contact_id, purchase_date as entry_date, due_total * exchange_rate as amount');
+
+        return $docs->orderByDesc('entry_date')->get()->groupBy('contact_id');
     }
 
     /** @return list<array<string, mixed>> */

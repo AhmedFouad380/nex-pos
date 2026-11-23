@@ -6,6 +6,7 @@ use App\Domain\CRM\Services\ContactLedger;
 use App\Domain\Finance\Services\Posting;
 use App\Domain\Inventory\Services\StockLedger;
 use App\Domain\Purchasing\Models\Purchase;
+use App\Domain\Purchasing\Services\LastPurchasePrice;
 use App\Domain\Purchasing\Services\PurchaseOrderProgress;
 use App\Support\Decimal;
 use App\Support\DomainException;
@@ -21,6 +22,7 @@ final class VoidPurchase
         private readonly StockLedger $ledger,
         private readonly ContactLedger $contacts,
         private readonly PurchaseOrderProgress $orders,
+        private readonly LastPurchasePrice $lastPrices,
     ) {}
 
     public function handle(Purchase $purchase, string $reason): Purchase
@@ -45,6 +47,8 @@ final class VoidPurchase
                 $this->orders->refresh($purchase->purchase_order_id);
             }
             $this->contacts->refresh($purchase->supplier);
+            // the product's purchase price goes back to its previous purchase
+            $this->lastPrices->refresh($purchase->items->pluck('variation_id')->unique()->values()->all());
 
             app(Posting::class)->sync($purchase);
 

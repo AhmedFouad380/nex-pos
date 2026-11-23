@@ -2,6 +2,9 @@
 
 use App\Domain\Catalog\Models\TaxRate;
 use App\Domain\Finance\Actions\CreateExpense;
+use App\Domain\Finance\Actions\RecordPayment;
+use App\Domain\Finance\Data\PaymentData;
+use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Foundation\Models\Location;
 use App\Domain\Reporting\Data\ReportFilter;
 use App\Domain\Reporting\Services\FinancialStatements;
@@ -62,6 +65,18 @@ it('computes sales, returns and gross profit by any dimension', function () {
     foreach (SalesReport::DIMENSIONS as $dimension) {
         expect(app(SalesReport::class)->by($dimension, $this->filter)->sum(fn ($r) => (float) $r['net']))->toEqual(40.0);
     }
+});
+
+it('ages only the account balance: payments not linked to an invoice pay off the oldest first', function () {
+    $old = sell([[$this->tea, 2]], [], ['cashSessionId' => $this->session->id, 'customerId' => $this->customer->id]);
+    $old->update(['sale_date' => now()->subDays(120)]); // 20 owed for 120 days + 20 owed today
+    app(RecordPayment::class)->handle(new PaymentData(PaymentDirection::In, cashMethodId(), '20', $this->customer->id, $this->location->id));
+
+    $row = app(OperationsReports::class)->aging('receivable')[0];
+    expect($row)->toMatchArray(['current' => '20.00', 'b90' => '0.00', 'total' => '20.00', 'balance' => '20.00']);
+
+    app(RecordPayment::class)->handle(new PaymentData(PaymentDirection::In, cashMethodId(), '20', $this->customer->id, $this->location->id));
+    expect(app(OperationsReports::class)->aging('receivable'))->toBeEmpty(); // settled: not listed even though invoices are open
 });
 
 it('agrees with the journal in the income statement and balances the balance sheet', function () {

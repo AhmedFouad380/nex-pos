@@ -21,6 +21,7 @@ use App\Domain\Purchasing\Data\PurchaseLineData;
 use App\Domain\Purchasing\Enums\CostDistribution;
 use App\Domain\Purchasing\Enums\PurchaseOrderStatus;
 use App\Domain\Purchasing\Enums\PurchaseStatus;
+use App\Domain\Purchasing\Services\LastPurchasePrice;
 use App\Domain\Shared\Enums\DiscountType;
 use App\Domain\Shared\Enums\PaymentStatus;
 use App\Support\DomainException;
@@ -92,6 +93,36 @@ it('voids an unpaid purchase but refuses one that was paid or partly sold', func
         [new StockLineData($this->a->id, $this->a->product->unit_id, '1')]);
     expect(fn () => app(VoidPurchase::class)->handle($sold, 'x'))->toThrow(StockAlreadyConsumed::class);
     assertStockConsistent();
+});
+
+it('puts the purchase price back to the previous purchase when the latest is voided', function () {
+    makePurchase($this->supplier, [[$this->a, 2, 10]], ['date' => now()->subDays(2)]);
+    $latest = makePurchase($this->supplier, [[$this->a, 2, 14]]);
+    expect($this->a->refresh()->purchase_price)->toBe('14.0000');
+
+    app(VoidPurchase::class)->handle($latest, 'خطأ');
+
+    expect($this->a->refresh()->purchase_price)->toBe('10.0000');
+});
+
+it('takes the purchase price from the latest purchase, not the order purchases were written in', function () {
+    makePurchase($this->supplier, [[$this->a, 1, 14]]);
+    makePurchase($this->supplier, [[$this->a, 1, 10]], ['date' => now()->subDays(5)]); // entered late
+    $this->a->update(['purchase_price' => 1]); // an import writes purchases without touching the product
+
+    expect(app(LastPurchasePrice::class)->refresh())->toBe(1)
+        ->and($this->a->refresh()->purchase_price)->toBe('14.0000')
+        ->and($this->b->refresh()->purchase_price)->toBe('1.0000'); // never bought: left alone
+});
+
+it('gives a product never bought the cost it was put into stock at, after an import', function () {
+    app(CreateStockAdjustment::class)->handle($this->location->id, StockAdjustmentType::Opening,
+        [new StockLineData($this->b->id, $this->b->product->unit_id, '5', unitCost: '7')]);
+    $this->b->update(['purchase_price' => 0]);
+
+    app(LastPurchasePrice::class)->refresh();
+
+    expect($this->b->refresh()->purchase_price)->toBe('7.0000');
 });
 
 it('returns goods to the supplier from the purchase layer, capped at what was bought', function () {
