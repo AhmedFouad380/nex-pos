@@ -8,6 +8,7 @@ use App\Domain\Wallet\Models\Wallet;
 use App\Domain\Wallet\Models\WalletDevice;
 use App\Domain\Wallet\Models\WalletTransaction;
 use App\Domain\Wallet\Services\MessageParser;
+use App\Domain\Wallet\Services\WalletLimitAlert;
 use App\Domain\Wallet\Services\WalletNotifier;
 use App\Support\Decimal;
 use Carbon\CarbonInterface;
@@ -56,6 +57,9 @@ final class IngestWalletMessage
 
         if ($transaction->status === Status::Pending) {
             $this->notifier->arrived($transaction);
+            if ($transaction->wallet_id && ($wallet = Wallet::query()->find($transaction->wallet_id))) {
+                rescue(fn () => app(WalletLimitAlert::class)->check($wallet), report: true);
+            }
         }
 
         return [$transaction, true];

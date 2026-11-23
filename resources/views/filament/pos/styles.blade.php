@@ -106,8 +106,22 @@
     .pos-line.is-over { border-color: var(--pos-bad); background: color-mix(in oklab, var(--pos-bad) 6%, transparent); }
     .pos-line-head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: start; }
     .pos-line-name { font-weight: 600; flex: 1; }
+    .pos-tool-badged { position: relative; }
+    .pos-tool-count { position: absolute; top: 0; inset-inline-end: 0; min-width: 1.1rem; height: 1.1rem; padding: 0 .25rem; border-radius: 9999px;
+        background: var(--pos-bad); color: #fff; font-size: .7rem; line-height: 1.1rem; text-align: center; }
+    .pos-wallet-lines { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+    .pos-wallet-line { display: flex; flex-direction: column; gap: .1rem; padding: .5rem .7rem; border: 1px solid var(--pos-border); border-radius: .6rem; min-width: 11rem; font-size: .85rem; }
+    .pos-wallet-line.is-warning { border-color: var(--pos-warn); }
+    .pos-wallet-line.is-danger { border-color: var(--pos-bad); opacity: .75; }
+    .pos-wallet-line.is-best { border-color: var(--pos-ok); box-shadow: 0 0 0 2px color-mix(in oklab, var(--pos-ok) 25%, transparent); }
+    .pos-wallet-line em { font-style: normal; color: var(--pos-ok); font-weight: 700; font-size: .75rem; }
+    .pos-wallet-kind { font-weight: 700; }
+    .pos-wallet-kind.is-in { color: var(--pos-ok); }
+    .pos-wallet-kind.is-out { color: var(--pos-warn); }
+    .pos-wallet-commission { width: 6rem; }
+    .pos-wallet-cash { font-size: 1.05rem; }
     .pos-advance-warning { color: var(--pos-warn); font-weight: 600; }
-    .pos-advance-success { color: var(--pos-good, #16a34a); font-weight: 600; }
+    .pos-advance-success { color: var(--pos-ok); font-weight: 600; }
     .pos-advance-danger { color: var(--pos-bad); font-weight: 600; }
     .pos-advance-info { color: var(--primary-600); font-weight: 600; }
     .pos-below-cost { flex-basis: 100%; font-size: 0.78rem; font-weight: 700; color: var(--pos-bad); }

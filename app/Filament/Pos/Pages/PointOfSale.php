@@ -32,6 +32,13 @@ use App\Domain\Sales\Enums\SaleChannel;
 use App\Domain\Sales\Enums\SaleStatus;
 use App\Domain\Sales\Models\Sale;
 use App\Domain\Shared\Enums\DiscountType;
+use App\Domain\Wallet\Actions\ConfirmWalletTransaction;
+use App\Domain\Wallet\Enums\WalletTarget;
+use App\Domain\Wallet\Enums\WalletTransactionStatus;
+use App\Domain\Wallet\Models\Wallet;
+use App\Domain\Wallet\Models\WalletServiceRate;
+use App\Domain\Wallet\Models\WalletTransaction;
+use App\Domain\Wallet\Services\WalletUsage;
 use App\Models\User;
 use App\Settings\GeneralSettings;
 use App\Settings\InventorySettings;
@@ -44,6 +51,7 @@ use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Renderless;
 
 /**
  * The cashier screen. The cart lives in the browser (Alpine) for speed; every action that matters
@@ -128,6 +136,10 @@ class PointOfSale extends Page
                 'requestAdvance' => $user->can('advances.request') && $user->employeeProfile()->exists(),
                 // without it the cashier counts the drawer without knowing what it should hold
                 'seeExpected' => $user->can('cash_register.view_expected'),
+                // the wallet service: confirm transfers / withdrawals of the branch's lines from the till
+                'walletService' => $user->can('wallet.confirm') && $this->locationId() !== null
+                    && Wallet::query()->where('is_active', true)->where('location_id', $this->locationId())->exists(),
+                'editCommission' => $user->can('wallet.edit_commission'),
             ],
             'scale' => $this->scaleSettings(),
             'shortcuts' => $pos->keyboard_shortcuts,
@@ -237,6 +249,7 @@ class PointOfSale extends Page
         });
     }
 
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
     public function shiftSummary(): array
     {
         $session = $this->requireSession();
@@ -273,6 +286,7 @@ class PointOfSale extends Page
 
     // --- customers -------------------------------------------------------------------------------
 
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
     public function searchCustomers(string $search): array
     {
         $search = trim($search);
@@ -316,6 +330,7 @@ class PointOfSale extends Page
     }
 
     /** Suspended / draft sales of this shift (or this user) to recall. */
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
     public function parkedSales(): array
     {
         return Sale::query()->with('customer')
@@ -369,6 +384,7 @@ class PointOfSale extends Page
      *
      * @return list<array{name: string, qty: float}>
      */
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
     public function otherBranches(int $variationId): array
     {
         return StockLevel::query()->join('locations', 'locations.id', '=', 'stock_levels.location_id')
@@ -395,6 +411,7 @@ class PointOfSale extends Page
     }
 
     /** @return list<array{amount: float, status: string, color: string, at: ?string, note: ?string}> the cashier's own latest requests */
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
     public function myAdvanceRequests(): array
     {
         return AdvanceRequest::query()->where('requested_by', $this->user()->id)->latest('id')->limit(5)->get()
@@ -403,6 +420,59 @@ class PointOfSale extends Page
             ->all();
     }
 
+    /**
+     * The branch's wallet messages waiting for a cashier, each with the commission and the cash to take / give,
+     * and its lines with what each can still send (the best one suggested for the next transfer).
+     *
+     * @return array{pending: list<array<string, mixed>>, lines: list<array<string, mixed>>, suggested: ?int}
+     */
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
+    public function walletPending(): array
+    {
+        abort_unless($this->user()->can('wallet.confirm'), 403);
+        $locationId = $this->locationId() ?? throw new DomainException(__('cash.errors.no_session'));
+
+        $wallets = Wallet::query()->where('is_active', true)->where('location_id', $locationId)->orderBy('sim_slot')->orderBy('name')->get();
+        $usage = app(WalletUsage::class)->for($wallets);
+        $lines = $wallets->map(fn (Wallet $w) => ['id' => $w->id, 'name' => $w->name, 'phone' => $w->phone, 'sim' => $w->sim_slot,
+            'balance' => $w->last_balance === null ? null : (float) $w->last_balance, 'available' => $usage[$w->id]['available_out'],
+            'level' => $usage[$w->id]['level']])->values();
+        $best = $lines->filter(fn ($l) => ($l['available'] ?? 0) > 0)->sortByDesc('available')->first();
+
+        $pending = WalletTransaction::query()->with('wallet')->where('location_id', $locationId)
+            ->where('status', WalletTransactionStatus::Pending)->whereNotNull('direction')->whereNotNull('amount')
+            ->latest('received_at')->limit(20)->get()
+            ->map(function (WalletTransaction $t) {
+                $commission = (float) (string) WalletServiceRate::commissionFor($t->location_id, $t->direction, (string) $t->amount);
+                $amount = (float) $t->amount;
+                $out = $t->direction === PaymentDirection::Out;
+
+                return ['id' => $t->id, 'out' => $out, 'amount' => $amount, 'fee' => (float) $t->fee, 'commission' => $commission,
+                    'from' => $t->counterparty_name ?? $t->counterparty_phone, 'phone' => $t->counterparty_phone,
+                    'line' => $t->wallet?->name, 'line_id' => $t->wallet_id,
+                    'at' => ($t->occurred_at ?? $t->received_at)->diffForHumans()];
+            })->values()->all();
+
+        return ['pending' => $pending, 'lines' => $lines->all(), 'suggested' => $best['id'] ?? null];
+    }
+
+    /** The cashier confirms a wallet message as the transfer / withdrawal service; the cash goes through this shift. */
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
+    public function confirmWalletService(int $transactionId, ?float $commission = null, ?int $walletId = null): array
+    {
+        $user = $this->user();
+        abort_unless($user->can('wallet.confirm'), 403);
+
+        return $this->attempt(function () use ($user, $transactionId, $commission, $walletId) {
+            $transaction = WalletTransaction::query()->where('location_id', $this->locationId())->findOrFail($transactionId);
+            $done = app(ConfirmWalletTransaction::class)->handle($transaction, WalletTarget::Service, 0, $user, $walletId ?: null, null,
+                $commission !== null && $user->can('wallet.edit_commission') ? $commission : null);
+
+            return ['ok' => true, 'number' => $done->payment?->number, 'commission' => (float) $done->commission];
+        });
+    }
+
+    #[Renderless] // returns data to the page script; nothing on the page to redraw
     public function recentSales(): array
     {
         abort_unless($this->user()->can('pos.view_sales'), 403);

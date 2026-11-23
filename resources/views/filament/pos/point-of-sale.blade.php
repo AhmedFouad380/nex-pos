@@ -60,12 +60,14 @@
                     modal: null, tenders: [], toast: null, busy: false, bumped: null, success: null, clock: '',
                     customerQuery: '', customerResults: [], newCustomer: { name: '', mobile: '' },
                     parked: [], recent: [], summary: null, closing: { counted: 0, note: '' }, movement: { direction: 'in', amount: 0, reason: '' }, advance: { amount: null, installment: null, reason: '' }, myAdvances: [],
+                    wallet: { pending: [], lines: [], suggested: null }, walletSeen: null, walletCommission: {}, walletLine: {},
 
                     init() {
                         this.$nextTick(() => this.$refs.search?.focus());
                         const tick = () => this.clock = new Date().toLocaleTimeString(document.documentElement.lang || 'ar', { hour: '2-digit', minute: '2-digit' });
                         tick(); setInterval(tick, 30000);
                         window.addEventListener('keydown', e => this.shortcut(e));
+                        if (boot.can.walletService) { this.loadWallet(true); setInterval(() => this.loadWallet(true), 15000); }
                     },
 
                     // ---------- catalog ----------
@@ -268,6 +270,24 @@
                         this.flash('{{ __('Request sent for approval') }}', 'ok');
                         this.advance = { amount: null, installment: null, reason: '' }; this.modal = null;
                     },
+                    // ---------- wallet service ----------
+                    async loadWallet(silent = false) {
+                        const r = await this.$wire.walletPending();
+                        if (r.error) return silent || this.flash(r.error, 'error');
+                        const fresh = r.pending.filter(t => this.walletSeen !== null && !this.walletSeen.includes(t.id));
+                        if (fresh.length) this.flash(fresh.map(t => (t.out ? '{{ __('Transfer sent') }}' : '{{ __('Transfer received') }}') + ' ' + this.money(t.amount) + (t.from ? ' — ' + t.from : '')).join(' · '), 'ok');
+                        this.walletSeen = r.pending.map(t => t.id);
+                        r.pending.forEach(t => { if (this.walletCommission[t.id] === undefined) this.walletCommission[t.id] = t.commission; if (!this.walletLine[t.id]) this.walletLine[t.id] = t.line_id ?? r.suggested; });
+                        this.wallet = r;
+                    },
+                    async showWallet() { await this.loadWallet(); this.modal = 'wallet'; },
+                    walletCash(t) { const c = Number(this.walletCommission[t.id] || 0); return t.out ? t.amount + c : t.amount - c; },
+                    async confirmWallet(t) {
+                        const r = await this.$wire.confirmWalletService(t.id, boot.can.editCommission ? Number(this.walletCommission[t.id]) : null, t.line_id ? null : Number(this.walletLine[t.id]) || null);
+                        if (r.error) return this.flash(r.error, 'error');
+                        this.flash((t.out ? '{{ __('Take from the customer') }} ' : '{{ __('Give the customer') }} ') + this.money(this.walletCash(t)) + ' · ' + r.number, 'ok');
+                        await this.loadWallet(true);
+                    },
                     async saveMovement() {
                         const r = await this.$wire.cashMovement(this.movement.direction, Number(this.movement.amount), this.movement.reason);
                         if (r.error) return this.flash(r.error, 'error');
@@ -324,6 +344,7 @@
                     <div class="pos-tools">
                         <button class="pos-tool" @click="showParked()" title="{{ __('Recall') }}">@svg('heroicon-o-inbox-stack')<span>{{ __('Recall') }}</span></button>
                         <button class="pos-tool" x-show="boot.can.viewSales" @click="showRecent()" title="{{ __('Recent') }}">@svg('heroicon-o-clock')<span>{{ __('Recent') }}</span></button>
+                        <button class="pos-tool pos-tool-badged" x-show="boot.can.walletService" @click="showWallet()" title="{{ __('Wallets') }}">@svg('heroicon-o-device-phone-mobile')<span>{{ __('Wallets') }}</span><b class="pos-tool-count" x-show="wallet.pending.length" x-text="wallet.pending.length"></b></button>
                         <button class="pos-tool" x-show="boot.can.requestAdvance" @click="showAdvance()" title="{{ __('Request an advance') }}">@svg('heroicon-o-hand-raised')<span>{{ __('Advance') }}</span></button>
                         <button class="pos-tool" x-show="boot.can.cashMovements" @click="modal = 'movement'" title="{{ __('Cash in / out') }}">@svg('heroicon-o-arrows-right-left')<span>{{ __('Cash in / out') }}</span></button>
                         <button class="pos-tool is-danger" x-show="boot.can.close" @click="showClose()" title="{{ __('Close shift') }}">@svg('heroicon-o-lock-closed')<span>{{ __('Close shift') }}</span></button>
@@ -530,6 +551,41 @@
                     <input class="pos-input" type="number" min="0" step="any" x-model.number="movement.amount" placeholder="{{ __('Amount') }}">
                     <input class="pos-input" x-model="movement.reason" placeholder="{{ __('Reason') }}">
                     <div class="pos-actions"><button class="pos-btn pos-btn-primary" :disabled="!movement.amount" @click="saveMovement()">{{ __('Save') }}</button></div>
+                </div>
+
+                <div class="pos-modal pos-modal-wide" x-show="modal === 'wallet'">
+                    <h3>{{ __('Wallet service') }}</h3>
+                    <div class="pos-wallet-lines">
+                        <template x-for="l in wallet.lines" :key="l.id">
+                            <div class="pos-wallet-line" :class="['is-' + l.level, { 'is-best': l.id === wallet.suggested }]">
+                                <strong x-text="l.name"></strong>
+                                <span class="pos-muted" dir="ltr" x-text="(l.phone || '') + (l.sim ? ' · SIM ' + l.sim : '')"></span>
+                                <span>{{ __('Available to send') }}: <b x-text="l.available === null ? '—' : money(l.available)"></b></span>
+                                <span class="pos-muted">{{ __('Balance') }}: <span x-text="l.balance === null ? '—' : money(l.balance)"></span></span>
+                                <em x-show="l.id === wallet.suggested">{{ __('Send from this line') }}</em>
+                            </div>
+                        </template>
+                    </div>
+                    <table class="pos-table" x-show="wallet.pending.length">
+                        <template x-for="t in wallet.pending" :key="t.id">
+                            <tr>
+                                <td><span class="pos-wallet-kind" :class="t.out ? 'is-out' : 'is-in'" x-text="t.out ? '{{ __('Transfer for a customer') }}' : '{{ __('Withdrawal for a customer') }}'"></span>
+                                    <div class="pos-muted" x-text="(t.from || '') + ' · ' + (t.at || '')"></div></td>
+                                <td><b x-text="money(t.amount)"></b>
+                                    <div class="pos-muted" x-show="t.line" x-text="t.line"></div>
+                                    <select class="pos-input" x-show="!t.line_id" x-model="walletLine[t.id]">
+                                        <template x-for="l in wallet.lines" :key="l.id"><option :value="l.id" x-text="l.name"></option></template>
+                                    </select></td>
+                                <td>{{ __('Commission') }}
+                                    <input class="pos-input pos-wallet-commission" type="number" min="0" step="any" x-model.number="walletCommission[t.id]" :disabled="!boot.can.editCommission"></td>
+                                <td><div class="pos-muted" x-text="t.out ? '{{ __('Take from the customer') }}' : '{{ __('Give the customer') }}'"></div>
+                                    <b class="pos-wallet-cash" x-text="money(walletCash(t))"></b></td>
+                                <td><button class="pos-btn pos-btn-primary" @click="confirmWallet(t)">{{ __('Confirm') }}</button></td>
+                            </tr>
+                        </template>
+                    </table>
+                    <p class="pos-muted" x-show="!wallet.pending.length">{{ __('No transfers waiting.') }}</p>
+                    <p class="pos-muted">{{ __('A transfer that is not the service (an invoice, a supplier…) is confirmed from the dashboard.') }}</p>
                 </div>
 
                 <div class="pos-modal" x-show="modal === 'advance'">

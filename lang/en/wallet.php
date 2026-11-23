@@ -18,6 +18,13 @@ return [
     'api' => [
         'due' => 'Due :amount',
     ],
+    'limit' => [
+        'warn' => 'Line :line used :percent% of its :period',
+        'full' => 'Line :line reached its :period',
+        'day' => 'daily sending limit',
+        'month' => 'monthly sending limit',
+        'body' => 'Sent :used of :limit. Available to send now: :available — use another line.',
+    ],
     'errors' => [
         'no_open_shift' => 'Open a shift in this branch first: the service cash goes into its drawer.',
         'no_cash_method' => 'There is no active cash payment method.',

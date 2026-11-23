@@ -931,5 +931,14 @@
     "Transfer %": "نسبة التحويل",
     "Transfer minimum": "حد أدنى للتحويل",
     "Withdrawal %": "نسبة السحب",
-    "Withdrawal minimum": "حد أدنى للسحب"
+    "Withdrawal minimum": "حد أدنى للسحب",
+    "Wallets": "المحافظ",
+    "Wallet service": "خدمة المحافظ",
+    "Send from this line": "حوّل من هذا الخط",
+    "Transfer sent": "تحويل صادر",
+    "Transfer received": "تحويل وارد",
+    "Take from the customer": "خذ من العميل",
+    "Give the customer": "ادفع للعميل",
+    "No transfers waiting.": "لا توجد تحويلات في انتظار التأكيد.",
+    "A transfer that is not the service (an invoice, a supplier…) is confirmed from the dashboard.": "التحويل الذي ليس خدمة (سداد فاتورة، مورد…) يُؤكَّد من لوحة التحكم."
 }
