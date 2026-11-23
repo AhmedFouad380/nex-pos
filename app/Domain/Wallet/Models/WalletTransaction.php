@@ -2,6 +2,7 @@
 
 namespace App\Domain\Wallet\Models;
 
+use App\Domain\CashManagement\Models\CashSession;
 use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Finance\Models\Expense;
 use App\Domain\Finance\Models\Payment;
@@ -24,9 +25,9 @@ class WalletTransaction extends Model
     protected $fillable = [
         'wallet_device_id', 'location_id', 'wallet_id', 'wallet_message_template_id',
         'sender', 'body', 'body_hash', 'received_at', 'sim_slot',
-        'provider', 'direction', 'amount', 'fee', 'balance', 'counterparty_phone', 'counterparty_name', 'wallet_phone',
+        'provider', 'direction', 'amount', 'fee', 'commission', 'balance', 'counterparty_phone', 'counterparty_name', 'wallet_phone',
         'reference', 'occurred_at',
-        'status', 'target_type', 'target_id', 'payment_id', 'expense_id', 'fee_expense_id',
+        'status', 'target_type', 'target_id', 'payment_id', 'expense_id', 'fee_expense_id', 'cash_session_id', 'commission_payment_id',
         'confirmed_by', 'confirmed_at', 'reject_reason', 'note',
     ];
 
@@ -39,6 +40,7 @@ class WalletTransaction extends Model
             'direction' => PaymentDirection::class,
             'amount' => 'decimal:4',
             'fee' => 'decimal:4',
+            'commission' => 'decimal:4',
             'balance' => 'decimal:4',
             'status' => WalletTransactionStatus::class,
             'target_type' => WalletTarget::class,
@@ -74,6 +76,18 @@ class WalletTransaction extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(WalletMessageTemplate::class, 'wallet_message_template_id');
+    }
+
+    /** @return BelongsTo<Payment, $this> the commission voucher of a service operation */
+    public function commissionPayment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class, 'commission_payment_id');
+    }
+
+    /** @return BelongsTo<CashSession, $this> the shift whose drawer the service cash went into */
+    public function cashSession(): BelongsTo
+    {
+        return $this->belongsTo(CashSession::class, 'cash_session_id');
     }
 
     /** @return BelongsTo<Payment, $this> */

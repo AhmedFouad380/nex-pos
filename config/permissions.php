@@ -36,7 +36,7 @@ return [
         'payroll' => ['employees.view', 'employees.create', 'employees.update', 'employees.delete',
             'advances.view', 'advances.create', 'advances.void', 'advances.request', 'advances.approve',
             'payroll.view', 'payroll.create', 'payroll.approve', 'payroll.pay', 'payroll.void'],
-        'wallet' => ['wallet.view', 'wallet.confirm', 'wallet.manage'],
+        'wallet' => ['wallet.view', 'wallet.confirm', 'wallet.edit_commission', 'wallet.manage'],
         'cash' => ['cash_register.open', 'cash_register.close', 'cash_register.view', 'cash_register.close_others', 'cash_register.view_expected', 'cash_movements.create'],
         'restaurant' => ['restaurant.tables', 'restaurant.bookings', 'restaurant.kitchen', 'restaurant.orders'],
         'reports' => ['reports.profit_loss', 'reports.sales', 'reports.purchases', 'reports.stock', 'reports.tax',

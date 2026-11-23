@@ -2,6 +2,9 @@
 
 return [
     'fee_note' => 'مصاريف تحويل - :memo',
+    'commission_note' => 'عمولة خدمة المحافظ: :memo',
+    'transfer_note' => 'خدمة تحويل لعميل: :memo',
+    'withdraw_note' => 'خدمة سحب لعميل: :memo',
     'notify' => [
         'in' => 'وصل :amount جنيه على :provider من :from',
         'out' => 'اتحوّل :amount جنيه من :provider لـ :from',
@@ -16,6 +19,9 @@ return [
         'due' => 'المستحق :amount',
     ],
     'errors' => [
+        'no_open_shift' => 'افتح وردية في هذا الفرع أولًا: نقدية الخدمة تدخل درج الوردية.',
+        'no_cash_method' => 'لا توجد طريقة دفع نقدية نشطة.',
+        'bad_commission' => 'العمولة غير صحيحة: لا تكون سالبة، ولا أكبر من مبلغ السحب.',
         'unknown_placeholder' => 'الكلمة :name مش معروفة. المتاح: {amount} {fee} {balance} {phone} {name} {wallet} {datetime} {reference} {*}',
         'repeated_placeholder' => 'الكلمة :name مكتوبة أكتر من مرة.',
         'amount_required' => 'الصيغة لازم يكون فيها {amount}.',

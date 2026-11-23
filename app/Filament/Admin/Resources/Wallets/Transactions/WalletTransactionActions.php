@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Wallets\Transactions;
 
 use App\Domain\CRM\Models\Contact;
 use App\Domain\Finance\Actions\RecordJournalEntry;
+use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Finance\Models\Account;
 use App\Domain\Finance\Models\ExpenseCategory;
 use App\Domain\Sales\Enums\SaleStatus;
@@ -13,10 +14,12 @@ use App\Domain\Wallet\Actions\RejectWalletTransaction;
 use App\Domain\Wallet\Enums\WalletTarget;
 use App\Domain\Wallet\Enums\WalletTransactionStatus as Status;
 use App\Domain\Wallet\Models\Wallet;
+use App\Domain\Wallet\Models\WalletServiceRate;
 use App\Domain\Wallet\Models\WalletTransaction;
 use App\Domain\Wallet\Services\WalletSuggestions;
 use App\Filament\Support\DomainGuard;
 use App\Models\User;
+use App\Support\Decimal;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -41,8 +44,11 @@ final class WalletTransactionActions
 
                 return [
                     'wallet_id' => $record->wallet_id,
-                    'target_type' => $first['target']->value ?? WalletTarget::Contact->value,
+                    // nothing known about the sender: in a branch that sells the wallet service, it is most likely that
+                    'target_type' => $first['target']->value ?? (WalletServiceRate::query()->where('location_id', $record->location_id)->exists()
+                        ? WalletTarget::Service->value : WalletTarget::Contact->value),
                     'target_id' => $first['id'] ?? null,
+                    'commission' => self::defaultCommission($record),
                 ];
             })
             ->schema(fn (WalletTransaction $record) => [
@@ -53,7 +59,13 @@ final class WalletTransactionActions
                     ->options(collect(WalletTarget::cases())->filter(fn (WalletTarget $t) => $record->direction && $t->allows($record->direction))
                         ->mapWithKeys(fn (WalletTarget $t) => [$t->value => $t->getLabel()]))
                     ->afterStateUpdated(fn (Set $set) => $set('target_id', null)),
+                TextInput::make('commission')->label(__('Commission'))->numeric()->minValue(0)
+                    ->visible(fn (Get $get) => $get('target_type') === WalletTarget::Service->value)
+                    ->default(fn () => self::defaultCommission($record))
+                    ->disabled(fn () => ! auth()->user()?->can('wallet.edit_commission'))->live(onBlur: true)
+                    ->helperText(fn (Get $get) => self::serviceHint($record, $get('commission'))),
                 Select::make('target_id')->label(__('Choose'))->required()->searchable()
+                    ->hidden(fn (Get $get) => $get('target_type') === WalletTarget::Service->value)
                     ->options(fn (Get $get) => self::targetOptions((string) $get('target_type'), '', $record))
                     ->getSearchResultsUsing(fn (Get $get, string $search) => self::targetOptions((string) $get('target_type'), $search, $record))
                     ->getOptionLabelUsing(fn (Get $get, $value) => self::targetOptions((string) $get('target_type'), '', $record, (int) $value)[(int) $value] ?? null)
@@ -67,8 +79,10 @@ final class WalletTransactionActions
             ->action(function (WalletTransaction $record, array $data) use ($after) {
                 $user = auth()->user();
                 abort_unless($user instanceof User, 403);
-                $done = DomainGuard::run(fn () => app(ConfirmWalletTransaction::class)->handle($record, WalletTarget::from($data['target_type']),
-                    (int) $data['target_id'], $user, isset($data['wallet_id']) ? (int) $data['wallet_id'] : null, $data['note'] ?? null));
+                $target = WalletTarget::from($data['target_type']);
+                $done = DomainGuard::run(fn () => app(ConfirmWalletTransaction::class)->handle($record, $target,
+                    (int) ($data['target_id'] ?? 0), $user, isset($data['wallet_id']) ? (int) $data['wallet_id'] : null, $data['note'] ?? null,
+                    $target === WalletTarget::Service && $user->can('wallet.edit_commission') ? ($data['commission'] ?? null) : null));
                 Notification::make()->success()->title(__('Recorded as :number', ['number' => $done->payment?->number]))
                     ->actions([Action::make('print')->label(__('Print voucher'))->url(route('vouchers.print', $done->payment_id), true)])
                     ->send();
@@ -94,6 +108,32 @@ final class WalletTransactionActions
             });
     }
 
+    /** The branch rate on this amount (percentage with its minimum). */
+    public static function defaultCommission(WalletTransaction $transaction): ?string
+    {
+        if ($transaction->direction === null || $transaction->amount === null) {
+            return null;
+        }
+
+        return Decimal::toDb(WalletServiceRate::commissionFor($transaction->location_id, $transaction->direction, (string) $transaction->amount), 2);
+    }
+
+    /** What the cashier takes from / hands to the customer. */
+    public static function serviceHint(WalletTransaction $transaction, mixed $commission): ?string
+    {
+        if ($transaction->amount === null) {
+            return null;
+        }
+        $amount = (float) $transaction->amount;
+        $commission = is_numeric($commission) ? (float) $commission : (float) self::defaultCommission($transaction);
+
+        return $transaction->direction === PaymentDirection::Out
+            ? __('Take from the customer :total in cash (:amount + commission :commission).', ['total' => number_format($amount + $commission, 2),
+                'amount' => number_format($amount, 2), 'commission' => number_format($commission, 2)])
+            : __('Give the customer :total in cash (:amount − commission :commission).', ['total' => number_format($amount - $commission, 2),
+                'amount' => number_format($amount, 2), 'commission' => number_format($commission, 2)]);
+    }
+
     /** @return array<int, string> */
     public static function targetOptions(string $type, string $search, WalletTransaction $transaction, ?int $id = null): array
     {
@@ -106,6 +146,7 @@ final class WalletTransactionActions
                 ->with('customer')->latest('sale_date')->limit(50)->get()
                 ->mapWithKeys(fn (Sale $s) => [$s->id => $s->invoice_no.' — '.$s->customer?->name.' ('.number_format((float) $s->due_total, 2).')'])->all(),
             WalletTarget::Expense => self::search(ExpenseCategory::query(), ['name'], $search, $id)->orderBy('name')->pluck('name', 'id')->all(),
+            WalletTarget::Service => [],
             WalletTarget::Account => self::search(Account::query()->where('is_postable', true)->where('is_active', true)
                 ->where(fn (Builder $b) => $b->whereNull('sub_type')->orWhereNotIn('sub_type', RecordJournalEntry::CONTROL_ACCOUNTS)), ['name', 'code'], $search, $id)
                 ->orderBy('code')->limit(80)->get()->mapWithKeys(fn (Account $a) => [$a->id => $a->code.' — '.$a->name])->all(),

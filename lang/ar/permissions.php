@@ -84,6 +84,7 @@ return [
         'payroll.void' => 'إلغاء مسير رواتب',
         'wallet.view' => 'عرض تحويلات المحافظ',
         'wallet.confirm' => 'تأكيد تحويلات المحافظ',
+        'wallet.edit_commission' => 'تعديل عمولة خدمة المحافظ وقت التأكيد',
         'wallet.manage' => 'إدارة المحافظ والأجهزة والصيغ',
         'contacts.ledger' => 'كشف الحساب',
         'contacts.import' => 'استيراد جهات الاتصال',

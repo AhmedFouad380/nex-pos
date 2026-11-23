@@ -36,6 +36,7 @@ enum AccountSubType: string implements HasLabel
     case Salaries = 'salaries';
     case OperatingExpense = 'operating_expense';
     case OtherIncome = 'other_income';
+    case WalletCommission = 'wallet_commission'; // commission earned on the wallet transfer / withdrawal service
     case Other = 'other';
 
     public function getLabel(): string

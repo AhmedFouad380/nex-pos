@@ -78,6 +78,7 @@ return [
         'wallet' => 'Wallet',
         'wallet_device' => 'Wallet device',
         'wallet_message_template' => 'Wallet message template',
+        'wallet_service_rate' => 'Wallet service commission',
         'wallet_transaction' => 'Wallet transaction',
     ],
     'fields' => [

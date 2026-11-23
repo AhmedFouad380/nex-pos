@@ -917,5 +917,19 @@
     "Daily receiving limit": "حد الاستلام اليومي",
     "Monthly receiving limit": "حد الاستلام الشهري",
     "of": "من",
-    "Balance as the phone last reported it, the transfers of today and of this month against the limits of each line, and what it can still send.": "الرصيد كما أرسلته آخر رسالة، وتحويلات اليوم والشهر مقارنةً بحدود كل خط، والمتاح للتحويل."
+    "Balance as the phone last reported it, the transfers of today and of this month against the limits of each line, and what it can still send.": "الرصيد كما أرسلته آخر رسالة، وتحويلات اليوم والشهر مقارنةً بحدود كل خط، والمتاح للتحويل.",
+    "Take from the customer :total in cash (:amount + commission :commission).": "خذ من العميل :total نقدًا (:amount + عمولة :commission).",
+    "Give the customer :total in cash (:amount − commission :commission).": "ادفع للعميل :total نقدًا (:amount − عمولة :commission).",
+    "Branch commission": "عمولة فرع",
+    "Wallet service commissions": "عمولات خدمة المحافظ",
+    "Transfer for a customer": "تحويل لعميل",
+    "The customer pays cash and the branch sends it from its wallet.": "العميل يدفع نقدًا والفرع يحوّل له من محفظته.",
+    "Withdrawal for a customer": "سحب لعميل",
+    "The customer sends to the branch wallet and takes cash.": "العميل يحوّل إلى محفظة الفرع ويستلم نقدًا.",
+    "Percentage": "النسبة",
+    "Minimum": "الحد الأدنى",
+    "Transfer %": "نسبة التحويل",
+    "Transfer minimum": "حد أدنى للتحويل",
+    "Withdrawal %": "نسبة السحب",
+    "Withdrawal minimum": "حد أدنى للسحب"
 }

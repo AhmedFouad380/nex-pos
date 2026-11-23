@@ -29,6 +29,7 @@ return [
         'salaries' => 'Salaries and wages',
         'operating_expense' => 'Operating expense',
         'other_income' => 'Other income',
+        'wallet_commission' => 'Wallet commission income',
         'other' => 'Other',
     ],
     'account_type' => [
@@ -302,6 +303,7 @@ return [
         'contact' => 'Customer / supplier / employee',
         'expense' => 'Expense',
         'account' => 'Another account',
+        'service' => 'Transfer / withdrawal service',
     ],
     'tax_type' => [
         'inclusive' => 'Inclusive',

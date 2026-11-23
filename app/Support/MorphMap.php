@@ -88,6 +88,7 @@ use App\Domain\Sales\Models\ServiceType;
 use App\Domain\Wallet\Models\Wallet;
 use App\Domain\Wallet\Models\WalletDevice;
 use App\Domain\Wallet\Models\WalletMessageTemplate;
+use App\Domain\Wallet\Models\WalletServiceRate;
 use App\Domain\Wallet\Models\WalletTransaction;
 use App\Models\User;
 use Spatie\Activitylog\Models\Activity;
@@ -192,6 +193,7 @@ final class MorphMap
             'wallet' => Wallet::class,
             'wallet_device' => WalletDevice::class,
             'wallet_message_template' => WalletMessageTemplate::class,
+            'wallet_service_rate' => WalletServiceRate::class,
             'wallet_transaction' => WalletTransaction::class,
             'role' => Role::class,
             'permission' => Permission::class,

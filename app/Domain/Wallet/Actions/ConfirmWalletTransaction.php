@@ -2,6 +2,8 @@
 
 namespace App\Domain\Wallet\Actions;
 
+use App\Domain\CashManagement\Enums\CashSessionStatus;
+use App\Domain\CashManagement\Models\CashSession;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\Finance\Actions\CreateExpense;
 use App\Domain\Finance\Actions\RecordJournalEntry;
@@ -18,7 +20,9 @@ use App\Domain\Sales\Models\Sale;
 use App\Domain\Wallet\Enums\WalletTarget;
 use App\Domain\Wallet\Enums\WalletTransactionStatus as Status;
 use App\Domain\Wallet\Models\Wallet;
+use App\Domain\Wallet\Models\WalletServiceRate;
 use App\Domain\Wallet\Models\WalletTransaction;
+use App\Domain\Wallet\Services\WalletCommissionAccount;
 use App\Models\User;
 use App\Support\Decimal;
 use App\Support\DomainException;
@@ -31,6 +35,10 @@ use Illuminate\Support\Facades\DB;
  *   contact  → receipt from / payment to the contact, settling their oldest open documents
  *   expense  → an expense of that category, paid from the wallet
  *   account  → a voucher against any other account (other income, moving money to the cash box…)
+ *   service  → the wallet service for a walk-in customer, through the confirming cashier's shift:
+ *              out (a transfer the customer paid cash for): cash receipt of the amount against the wallet, and of the commission
+ *              in (a withdrawal): cash paid out of the amount less the commission, and the commission kept in the wallet
+ *              — the commission (the branch's percentage with its minimum) goes to the wallet commission income account.
  * The provider's fee on money sent out is recorded as a separate "transfer fees" expense.
  */
 final class ConfirmWalletTransaction
@@ -41,11 +49,14 @@ final class ConfirmWalletTransaction
     public function __construct(
         private readonly RecordPayment $payments,
         private readonly CreateExpense $expenses,
+        private readonly WalletCommissionAccount $commissionAccount,
     ) {}
 
-    public function handle(WalletTransaction $transaction, WalletTarget $target, int $targetId, User $by, ?int $walletId = null, ?string $note = null): WalletTransaction
+    /** @param  string|int|float|null  $commission  service only: replaces the branch rate (needs wallet.edit_commission) */
+    public function handle(WalletTransaction $transaction, WalletTarget $target, int $targetId, User $by, ?int $walletId = null, ?string $note = null,
+        string|int|float|null $commission = null): WalletTransaction
     {
-        return DB::transaction(function () use ($transaction, $target, $targetId, $by, $walletId, $note) {
+        return DB::transaction(function () use ($transaction, $target, $targetId, $by, $walletId, $note, $commission) {
             $transaction = WalletTransaction::query()->lockForUpdate()->findOrFail($transaction->id);
             if ($transaction->status !== Status::Pending) {
                 throw new DomainException(__('wallet.errors.not_pending'));
@@ -80,7 +91,9 @@ final class ConfirmWalletTransaction
                 ...$extra,
             ]);
 
+            $service = null;
             [$payment, $expenseId] = match ($target) {
+                WalletTarget::Service => [($service = $this->forService($transaction, $wallet, $methodId, $by, $commission, $memo))['payment'], null],
                 WalletTarget::Sale => [$this->forSale($transaction, $targetId, $voucher), null],
                 WalletTarget::Contact => [$this->payments->handle($voucher(['contactId' => Contact::query()->findOrFail($targetId)->id, 'autoAllocate' => true])), null],
                 WalletTarget::Account => [$this->payments->handle($voucher(['counterAccountId' => $this->counterAccount($targetId, $wallet)])), null],
@@ -106,6 +119,9 @@ final class ConfirmWalletTransaction
                 'payment_id' => $payment->id,
                 'expense_id' => $expenseId,
                 'fee_expense_id' => $feeExpense?->id,
+                'commission' => $service['commission'] ?? null,
+                'cash_session_id' => $service['session_id'] ?? null,
+                'commission_payment_id' => $service['commission_payment_id'] ?? null,
                 'confirmed_by' => $by->id,
                 'confirmed_at' => now(),
                 'note' => $note,
@@ -113,6 +129,61 @@ final class ConfirmWalletTransaction
 
             return $transaction;
         });
+    }
+
+    /**
+     * Cash side through the cashier's open shift, the commission to its income account.
+     *
+     * @return array{payment: Payment, commission: string, session_id: int, commission_payment_id: ?int}
+     */
+    private function forService(WalletTransaction $transaction, Wallet $wallet, int $walletMethodId, User $by,
+        string|int|float|null $override, string $memo): array
+    {
+        $session = CashSession::query()->where('status', CashSessionStatus::Open)->where('user_id', $by->id)
+            ->whereHas('cashRegister', fn ($q) => $q->where('location_id', $transaction->location_id))->latest('opened_at')->first()
+            ?? throw new DomainException(__('wallet.errors.no_open_shift'));
+        $cashMethod = PaymentMethod::query()->where('type', PaymentMethodType::Cash)->where('is_active', true)->orderBy('sort')->first()
+            ?? throw new DomainException(__('wallet.errors.no_cash_method'));
+        $direction = $transaction->direction ?? PaymentDirection::In;
+        $amount = Decimal::of($transaction->amount);
+
+        if ($override !== null && $override !== '') {
+            if (! $by->can('wallet.edit_commission')) {
+                throw new DomainException(__('wallet.errors.not_allowed'));
+            }
+            $commission = Decimal::of($override);
+        } else {
+            $commission = WalletServiceRate::commissionFor($transaction->location_id, $direction, $amount);
+        }
+        if ($commission->isNegative() || ($direction === PaymentDirection::In && $commission->isGreaterThan($amount))) {
+            throw new DomainException(__('wallet.errors.bad_commission'));
+        }
+
+        $walletAccount = $wallet->account_id
+            ?? $this->payments->accountFor(PaymentMethod::query()->findOrFail($walletMethodId), $transaction->location_id);
+        $incomeAccount = $this->commissionAccount->id();
+        $at = $transaction->occurred_at ?? $transaction->received_at;
+        $voucher = fn (PaymentDirection $dir, int $methodId, BigDecimal $value, int $counter, ?int $accountId, ?int $sessionId, string $note) => $this->payments->handle(new PaymentData(
+            direction: $dir, paymentMethodId: $methodId, amount: Decimal::toDb($value), locationId: $transaction->location_id, paidAt: $at,
+            accountId: $accountId, reference: $transaction->reference, note: $note, counterAccountId: $counter, cashSessionId: $sessionId,
+        ));
+        $commissionNote = __('wallet.commission_note', ['memo' => $memo]);
+
+        if ($direction === PaymentDirection::Out) {
+            // the customer hands over the amount and the commission in cash; the amount left the wallet
+            $main = $voucher(PaymentDirection::In, $cashMethod->id, $amount, $walletAccount, null, $session->id, __('wallet.transfer_note', ['memo' => $memo]));
+            $fee = $commission->isPositive() ? $voucher(PaymentDirection::In, $cashMethod->id, $commission, $incomeAccount, null, $session->id, $commissionNote) : null;
+        } else {
+            // the amount came into the wallet; the customer takes it in cash less the commission, which stays in the wallet
+            $cash = $amount->minus($commission);
+            $fee = $commission->isPositive() ? $voucher(PaymentDirection::In, $walletMethodId, $commission, $incomeAccount, $walletAccount, null, $commissionNote) : null;
+            $main = $cash->isPositive()
+                ? $voucher(PaymentDirection::Out, $cashMethod->id, $cash, $walletAccount, null, $session->id, __('wallet.withdraw_note', ['memo' => $memo]))
+                : $fee;
+        }
+
+        return ['payment' => $main ?? throw new DomainException(__('wallet.errors.bad_commission')), 'commission' => Decimal::toDb($commission),
+            'session_id' => $session->id, 'commission_payment_id' => $fee?->id];
     }
 
     /** @param \Closure(array<string, mixed>): PaymentData $voucher */

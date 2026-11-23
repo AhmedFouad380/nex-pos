@@ -29,6 +29,7 @@ return [
         'salaries' => 'رواتب وأجور',
         'operating_expense' => 'مصروفات تشغيل',
         'other_income' => 'إيرادات أخرى',
+        'wallet_commission' => 'إيرادات عمولات المحافظ',
         'other' => 'أخرى',
     ],
     'account_type' => [
@@ -302,6 +303,7 @@ return [
         'contact' => 'عميل / مورد / موظف',
         'expense' => 'مصروف',
         'account' => 'حساب تاني',
+        'service' => 'خدمة تحويل / سحب لعميل',
     ],
     'tax_type' => [
         'inclusive' => 'شامل الضريبة',

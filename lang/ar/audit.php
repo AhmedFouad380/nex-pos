@@ -80,6 +80,7 @@ return [
         'wallet' => 'محفظة',
         'wallet_device' => 'موبايل محفظة',
         'wallet_message_template' => 'صيغة رسالة محفظة',
+        'wallet_service_rate' => 'عمولة خدمة المحافظ لفرع',
         'wallet_transaction' => 'تحويل محفظة',
     ],
 

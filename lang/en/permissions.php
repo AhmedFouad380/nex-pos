@@ -84,6 +84,7 @@ return [
         'payroll.void' => 'Void payroll runs',
         'wallet.view' => 'View wallet transactions',
         'wallet.confirm' => 'Confirm wallet transactions',
+        'wallet.edit_commission' => 'Wallets: change the service commission',
         'wallet.manage' => 'Manage wallets, devices and templates',
         'contacts.ledger' => 'Contacts: ledger',
         'contacts.import' => 'Contacts: import',

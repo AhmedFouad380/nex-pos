@@ -65,7 +65,8 @@ final class RecordPayment
         });
     }
 
-    private function accountFor(PaymentMethod $method, ?int $locationId): int
+    /** The money account a method uses at a location (its branch account, else its own). */
+    public function accountFor(PaymentMethod $method, ?int $locationId): int
     {
         $accountId = $locationId
             ? DB::table('location_payment_method')->where('location_id', $locationId)->where('payment_method_id', $method->id)->value('account_id')

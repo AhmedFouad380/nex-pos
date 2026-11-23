@@ -15,6 +15,7 @@ enum WalletTarget: string implements HasLabel
     case Contact = 'contact';           // in: from a customer / out: to a supplier or employee, on their account
     case Expense = 'expense';           // out: an expense of a category
     case Account = 'account';           // either: against any other account (other income, cash box transfer…)
+    case Service = 'service';           // the wallet service for a walk-in customer: out = transfer they paid cash for, in = withdrawal paid in cash
 
     public function getLabel(): string
     {
