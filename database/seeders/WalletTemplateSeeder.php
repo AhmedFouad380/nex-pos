@@ -17,6 +17,9 @@ class WalletTemplateSeeder extends Seeder
     {
         $templates = [
             [WalletProvider::VodafoneCash, PaymentDirection::In, 'فودافون كاش - استلام', 'VF-Cash',
+                'تم استلام مبلغ {amount} جنيه من رقم {phone} المسجل بإسم {name} على رقم محفظتك {wallet}. رصيدك الحالي: {balance} جنيه تاريخ العملية: {datetime} رقم العملية: {reference}'],
+            // the wording before November 2026: "من 010…؛" and the date right after the wallet number
+            [WalletProvider::VodafoneCash, PaymentDirection::In, 'فودافون كاش - استلام (الصيغة القديمة)', 'VF-Cash',
                 'تم استلام مبلغ {amount} جنيه من {phone}؛ المسجل بإسم {name} على رقم محفظتك {wallet} بتاريخ {datetime}.{*}رصيدك الحالي: {balance} جنيه{*}رقم العملية: {reference}'],
             [WalletProvider::VodafoneCash, PaymentDirection::Out, 'فودافون كاش - تحويل', 'VF-Cash',
                 'تم تحويل {amount} جنيه لرقم {phone} مصاريف الخدمة {fee} جنيه رصيد حسابك فى فودافون كاش الحالي {balance}.{*}تاريخ العملية {datetime}{*}رقم العملية {reference}'],

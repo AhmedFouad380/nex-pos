@@ -13,7 +13,7 @@ use Carbon\CarbonImmutable;
  *
  *   تم استلام مبلغ {amount} جنيه من {phone}؛ المسجل بإسم {name} ... رقم العملية: {reference}
  *
- * Whitespace in the template matches any whitespace (or none); {*} skips any text (ads, links).
+ * Whitespace in the template matches any whitespace (or none), as does the space around punctuation; {*} skips any text (ads, links).
  */
 final class TemplateCompiler
 {
@@ -58,8 +58,9 @@ final class TemplateCompiler
 
                 continue;
             }
-            // literal text: any run of whitespace is optional whitespace
-            $words = preg_split('/\s+/u', $part) ?: [];
+            // literal text: any run of whitespace is optional whitespace, and so is the space around punctuation
+            // (". رصيدك" in the template matches ".\nرصيدك" and ".رصيدك" in the message)
+            $words = preg_split('/\s+/u', (string) preg_replace('/([.:؛،,])/u', ' $1 ', $part)) ?: [];
             $regex .= implode('\s*', array_map(fn (string $w) => preg_quote($w, '/'), $words));
         }
         if (! isset($seen['amount'])) {

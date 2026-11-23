@@ -27,6 +27,9 @@ use Illuminate\Support\Facades\DB;
 
 const VF_IN = "تم استلام مبلغ 1500.00 جنيه من 01096660484؛\nالمسجل بإسم محمد ابراهيم محمد احمد سالم\nعلى رقم محفظتك 01099638383 بتاريخ 14:43 26-11-16.\nرصيدك الحالي: 7161.52 جنيه\nرقم العملية: 025845786581\n تقدر تتابع كل مصروفاتك من تاريخ المعاملات على أبلكيشن أنا فودافون http://vf";
 
+// the wording since November 2026 ("من رقم", the date on its own line)
+const VF_IN_NEW = "تم استلام مبلغ 20000 جنيه من رقم 01090755510 المسجل بإسم Mohsen A Mahmoud على رقم محفظتك  01099638383.\nرصيدك الحالي: 41100.14 جنيه\nتاريخ العملية: 00:05 26-11-23\nرقم العملية: 026077094210\nتابع كل مصروفاتك من تاريخ المعاملات على أبلكيشن أنا فودافون http://vf.eg/vfcash";
+
 const VF_OUT = "تم تحويل 655 جنيه لرقم 01097746217 مصاريف الخدمة 1 جنيه رصيد حسابك فى فودافون كاش الحالي 4.52.\nتاريخ العملية 17:20 26-11-16 :\nرقم العملية 025851509705 :\n حول فلوس لأي محفظة وزود فرصك تكسب جنيه دهب! وكمان هيجيلك لحد 100ج كاش باك. http://vf.eg/vfcash?id=money_transfer";
 
 beforeEach(function () {
@@ -52,6 +55,19 @@ it('reads both Vodafone Cash messages with the seeded templates', function () {
         ->and($in->reference)->toBe('025845786581')
         ->and($in->occurred_at->format('Y-m-d H:i'))->toBe('2026-11-16 14:43');
 
+    $new = ($this->ingest)(VF_IN_NEW);
+    expect($new->status)->toBe(Status::Pending)
+        ->and($new->amount)->toBe('20000.0000')
+        ->and($new->counterparty_phone)->toBe('01090755510')
+        ->and($new->counterparty_name)->toBe('Mohsen A Mahmoud')
+        ->and($new->wallet_id)->toBe($this->wallet->id)
+        ->and($new->balance)->toBe('41100.1400')
+        ->and($new->reference)->toBe('026077094210')
+        ->and($new->occurred_at->format('Y-m-d H:i'))->toBe('2026-11-23 00:05');
+    // a message with a missing space ("تاريخالعملية") still reads
+    $squeezed = ($this->ingest)(str_replace(['تاريخ العملية', '026077094210', '20000'], ['تاريخالعملية', '026077094211', '30'], VF_IN_NEW));
+    expect($squeezed->amount)->toBe('30.0000');
+
     $out = ($this->ingest)(VF_OUT);
     expect($out->direction)->toBe(PaymentDirection::Out)
         ->and($out->amount)->toBe('655.0000')
@@ -61,11 +77,11 @@ it('reads both Vodafone Cash messages with the seeded templates', function () {
         ->and($out->reference)->toBe('025851509705')
         ->and($out->occurred_at->format('Y-m-d H:i'))->toBe('2026-11-16 17:20');
 
-    expect($this->wallet->refresh()->last_balance)->toBe('4.5200'); // the later message's balance
+    expect($this->wallet->refresh()->last_balance)->toBe('41100.1400'); // the latest message's balance (Nov 23)
 
     // nothing is posted until someone confirms
     expect(Payment::query()->count())->toBe(0)
-        ->and($this->admin->notifications()->count())->toBe(2);
+        ->and($this->admin->notifications()->count())->toBe(4);
 });
 
 it('stores the same SMS from two phones once and flags a repeated reference', function () {
