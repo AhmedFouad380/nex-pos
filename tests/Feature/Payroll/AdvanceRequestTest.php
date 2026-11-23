@@ -2,10 +2,12 @@
 
 use App\Domain\Foundation\Models\Location;
 use App\Domain\Payroll\Actions\AdvanceRequestWorkflow;
+use App\Domain\Payroll\Actions\LinkUserToEmployee;
 use App\Domain\Payroll\Enums\AdvanceRequestStatus;
 use App\Domain\Payroll\Models\AdvanceRequest;
 use App\Domain\Payroll\Models\EmployeeAdvance;
 use App\Filament\Admin\Resources\AdvanceRequests\Pages\ManageAdvanceRequests;
+use App\Filament\Admin\Resources\Settings\Pages\ManageUsers;
 use App\Filament\Pos\Pages\PointOfSale;
 use App\Models\User;
 use App\Support\DomainException;
@@ -82,4 +84,39 @@ it('rejects with a reason, and refuses paying what was not approved', function (
     expect($request->refresh()->status)->toBe(AdvanceRequestStatus::Rejected)->and($request->decision_note)->toBe('عليه سلفة مفتوحة')
         ->and(fn () => $flow->approve($request, $this->admin))->toThrow(DomainException::class)
         ->and(fn () => $flow->request($this->cashier, $this->employee, 100, 200))->toThrow(DomainException::class); // installment > amount
+});
+
+it('lets a manager approve a request they entered for an employee, but nobody their own', function () {
+    Filament::setCurrentPanel('admin');
+    $this->actingAs($this->admin);
+    $request = app(AdvanceRequestWorkflow::class)->request($this->admin, $this->employee, 500);
+    // the admin entered it, but it is the employee's advance: the admin decides on it and was told about it
+    livewire(ManageAdvanceRequests::class)->assertTableActionVisible('approve', $request)
+        ->callTableAction('approve', $request, ['amount' => 500])->assertHasNoTableActionErrors();
+    expect($request->refresh()->status)->toBe(AdvanceRequestStatus::Approved);
+
+    // the admin's own advance (linked to an employee record): no deciding on it, even directly
+    $own = makeEmployee('4000');
+    app(LinkUserToEmployee::class)->handle($this->admin, $own);
+    $mine = app(AdvanceRequestWorkflow::class)->request($this->admin, $own, 300);
+    livewire(ManageAdvanceRequests::class)->assertTableActionHidden('approve', $mine);
+    expect(fn () => app(AdvanceRequestWorkflow::class)->approve($mine, $this->admin))->toThrow(DomainException::class);
+});
+
+it('shows the advance button to a cashier not linked to an employee, with a note', function () {
+    Filament::setCurrentPanel('pos');
+    $other = User::factory()->create();
+    $other->assignRole('cashier');
+    $other->locations()->attach(Location::query()->firstOrFail()->id);
+    $this->actingAs($other);
+    openSession($other);
+    $can = livewire(PointOfSale::class)->instance()->bootstrap()['can'];
+    expect($can['requestAdvance'])->toBeTrue()->and($can['advanceLinked'])->toBeFalse();
+
+    // linking from the users page
+    Filament::setCurrentPanel('admin');
+    $this->actingAs($this->admin);
+    $employee = makeEmployee('3000');
+    livewire(ManageUsers::class)->callTableAction('linkEmployee', $other, ['contact_id' => $employee->id])->assertHasNoTableActionErrors();
+    expect($other->refresh()->employeeProfile->contact_id)->toBe($employee->id);
 });

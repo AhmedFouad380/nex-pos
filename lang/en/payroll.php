@@ -5,6 +5,7 @@ return [
     'advance_note' => 'Advance :number',
     'advance_repayment' => 'Repayment of advance :number',
     'errors' => [
+        'own_request' => 'You cannot decide on your own advance request.',
         'not_employee' => 'This contact is not an employee.',
         'advance_voided' => 'This advance is voided.',
         'advance_has_settlements' => 'Part of this advance was repaid. Void the repayment (or reopen the payroll that deducted it) first.',

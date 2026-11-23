@@ -50,6 +50,7 @@ final class AdvanceRequestWorkflow
     public function approve(AdvanceRequest $request, User $by, string|int|float|null $amount = null, string|int|float|null $installment = null, ?string $note = null): AdvanceRequest
     {
         $this->assertStatus($request, AdvanceRequestStatus::Pending, 'payroll.errors.request_not_pending');
+        $this->assertNotOwn($request, $by);
         $amount = filled($amount) ? $amount : (string) $request->amount;
         $installment = filled($installment) ? $installment : ($request->installment_amount !== null ? (string) $request->installment_amount : null);
         $this->assertAmounts($amount, $installment);
@@ -68,6 +69,7 @@ final class AdvanceRequestWorkflow
     public function reject(AdvanceRequest $request, User $by, ?string $note = null): AdvanceRequest
     {
         $this->assertStatus($request, AdvanceRequestStatus::Pending, 'payroll.errors.request_not_pending');
+        $this->assertNotOwn($request, $by);
         $request->update(['status' => AdvanceRequestStatus::Rejected, 'decided_by' => $by->id, 'decided_at' => now(), 'decision_note' => $note]);
         rescue(fn () => $this->notifier->rejected($request));
 
@@ -122,6 +124,14 @@ final class AdvanceRequestWorkflow
     {
         if ($request->status !== $status) {
             throw new DomainException(__($error));
+        }
+    }
+
+    /** Nobody decides on their own advance; a manager may approve one they entered for an employee. */
+    private function assertNotOwn(AdvanceRequest $request, User $by): void
+    {
+        if ($request->isFor($by)) {
+            throw new DomainException(__('payroll.errors.own_request'));
         }
     }
 }

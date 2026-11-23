@@ -65,11 +65,11 @@ final class AdvanceRequestNotifier
         return $user ? [$user] : [];
     }
 
-    /** @return iterable<User> active users with the permission in the request's branch (not the employee who asked) */
+    /** @return iterable<User> active users with the permission in the request's branch (not the employee it is for) */
     private function staff(AdvanceRequest $request, string $permission): iterable
     {
-        return User::query()->active()->whereKeyNot($request->requested_by ?? 0)->get()
-            ->filter(fn (User $user) => $user->can($permission)
+        return User::query()->active()->get()
+            ->filter(fn (User $user) => $user->can($permission) && ! $request->isFor($user)
                 && ($request->location_id === null || $user->accessibleLocations()->whereKey($request->location_id)->exists()));
     }
 

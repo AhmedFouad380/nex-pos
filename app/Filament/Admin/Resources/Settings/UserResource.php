@@ -2,10 +2,14 @@
 
 namespace App\Filament\Admin\Resources\Settings;
 
+use App\Domain\CRM\Enums\ContactType;
+use App\Domain\CRM\Models\Contact;
+use App\Domain\Payroll\Actions\LinkUserToEmployee;
 use App\Filament\Admin\Resources\Settings\Pages\ManageUsers;
 use App\Filament\Concerns\AuthorizesWithPermissions;
 use App\Filament\NavigationGroup;
 use App\Filament\Support\Avatar;
+use App\Filament\Support\DomainGuard;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -107,13 +111,14 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['roles', 'locations']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['roles', 'locations', 'employeeProfile.contact']))
             ->columns([
                 Avatar::column(TextColumn::make('name'))->label(__('Name'))->searchable(['name', 'username', 'email'])
                     ->description(fn (User $r) => collect([$r->username, str_ends_with((string) $r->email, '@import.invalid') ? null : $r->email])->filter()->implode(' · ')),
                 TextColumn::make('roles.name')->label(__('Roles'))->badge()
                     ->formatStateUsing(fn ($state) => RoleResource::label($state)),
                 TextColumn::make('locations.name')->label(__('Locations'))->badge()->limitList(3),
+                TextColumn::make('employeeProfile.contact.name')->label(__('Employee'))->placeholder(__('Not linked'))->toggleable(),
                 IconColumn::make('is_active')->label(__('Active'))->boolean(),
                 IconColumn::make('allow_login')->label(__('Can log in'))->boolean()
                     ->tooltip(fn (User $r) => $r->allow_login ? null : __('Cannot log in until login is activated.')),
@@ -144,6 +149,20 @@ class UserResource extends Resource
                             'allow_login' => true, 'is_active' => true,
                         ], fn ($value) => $value !== null && $value !== ''));
                         Notification::make()->success()->title(__('Login activated'))->send();
+                    }),
+                // the employee this login belongs to: needed to request an advance from the till
+                Action::make('linkEmployee')->label(__('Link to employee'))->icon('heroicon-o-link')->color('gray')
+                    ->visible(fn (User $r) => $r->deleted_at === null && static::canEdit($r))
+                    ->fillForm(fn (User $record) => ['contact_id' => $record->employeeProfile?->contact_id])
+                    ->schema([
+                        Select::make('contact_id')->label(__('Employee'))->searchable()
+                            ->options(fn () => Contact::query()->where('type', ContactType::Employee)->where('is_active', true)->orderBy('name')->pluck('name', 'id'))
+                            ->helperText(__('Empty = not linked.')),
+                    ])
+                    ->action(function (User $record, array $data) {
+                        $employee = filled($data['contact_id'] ?? null) ? Contact::query()->findOrFail($data['contact_id']) : null;
+                        DomainGuard::run(fn () => app(LinkUserToEmployee::class)->handle($record, $employee));
+                        Notification::make()->success()->title(__('Saved'))->send();
                     }),
                 EditAction::make()->visible(fn (User $r) => ! $r->isSuperAdmin() || auth()->user()?->isSuperAdmin()),
                 DeleteAction::make()->visible(fn (User $r) => $r->id !== auth()->id() && (! $r->isSuperAdmin() || auth()->user()?->isSuperAdmin())),

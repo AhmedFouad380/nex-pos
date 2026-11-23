@@ -47,6 +47,14 @@ class AdvanceRequest extends Model
         return $value === null ? null : (string) $value;
     }
 
+    /** The request is for this user's own employee record — they may not decide on it. */
+    public function isFor(User $user): bool
+    {
+        $own = EmployeeProfile::query()->where('user_id', $user->id)->value('contact_id');
+
+        return $own !== null && (int) $own === (int) $this->contact_id;
+    }
+
     /** @return BelongsTo<Contact, $this> */
     public function contact(): BelongsTo
     {

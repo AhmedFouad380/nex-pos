@@ -5,6 +5,7 @@ return [
     'advance_note' => 'سلفة :number',
     'advance_repayment' => 'سداد سلفة :number',
     'errors' => [
+        'own_request' => 'لا يمكنك اعتماد أو رفض طلب سلفة خاص بك.',
         'not_employee' => 'جهة الاتصال دي مش موظف.',
         'advance_voided' => 'السلفة دي ملغية.',
         'advance_has_settlements' => 'اتسدد جزء من السلفة دي. ألغِ السداد الأول (أو افتح مسير الرواتب اللي خصمها) وبعدين ألغِ السلفة.',

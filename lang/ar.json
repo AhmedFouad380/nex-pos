@@ -940,5 +940,9 @@
     "Take from the customer": "خذ من العميل",
     "Give the customer": "ادفع للعميل",
     "No transfers waiting.": "لا توجد تحويلات في انتظار التأكيد.",
-    "A transfer that is not the service (an invoice, a supplier…) is confirmed from the dashboard.": "التحويل الذي ليس خدمة (سداد فاتورة، مورد…) يُؤكَّد من لوحة التحكم."
+    "A transfer that is not the service (an invoice, a supplier…) is confirmed from the dashboard.": "التحويل الذي ليس خدمة (سداد فاتورة، مورد…) يُؤكَّد من لوحة التحكم.",
+    "Your account is not linked to an employee. Ask a manager to choose you as the system user in your employee record.": "حسابك غير مربوط بموظف. اطلب من المدير اختيارك كمستخدم النظام في بيانات الموظف الخاصة بك.",
+    "Not linked": "غير مربوط",
+    "Link to employee": "ربط بموظف",
+    "Empty = not linked.": "اتركه فارغًا لإلغاء الربط."
 }

@@ -590,10 +590,11 @@
 
                 <div class="pos-modal" x-show="modal === 'advance'">
                     <h3>{{ __('Request an advance') }}</h3>
+                    <p class="pos-error" x-show="!boot.can.advanceLinked">{{ __('Your account is not linked to an employee. Ask a manager to choose you as the system user in your employee record.') }}</p>
                     <input class="pos-input" type="number" min="0" step="any" x-model.number="advance.amount" placeholder="{{ __('Amount') }}">
                     <input class="pos-input" type="number" min="0" step="any" x-model.number="advance.installment" placeholder="{{ __('Monthly installment (optional)') }}">
                     <input class="pos-input" x-model="advance.reason" placeholder="{{ __('Reason') }}">
-                    <div class="pos-actions"><button class="pos-btn pos-btn-primary" :disabled="!advance.amount" @click="sendAdvance()">{{ __('Send for approval') }}</button></div>
+                    <div class="pos-actions"><button class="pos-btn pos-btn-primary" :disabled="!advance.amount || !boot.can.advanceLinked" @click="sendAdvance()">{{ __('Send for approval') }}</button></div>
                     <template x-if="myAdvances.length">
                         <div class="pos-totals">
                             <div class="pos-muted"><span>{{ __('Your latest requests') }}</span></div>

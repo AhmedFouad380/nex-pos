@@ -132,8 +132,9 @@ class PointOfSale extends Page
                 'close' => $user->can('cash_register.close'),
                 'viewSales' => $user->can('pos.view_sales'),
                 'overrideLimits' => $user->can('pos.override_limits'),
-                // the cashier asks for an advance from the till (their user must be linked to an employee)
-                'requestAdvance' => $user->can('advances.request') && $user->employeeProfile()->exists(),
+                // the cashier asks for an advance from the till; their user must be linked to an employee to send it
+                'requestAdvance' => $user->can('advances.request'),
+                'advanceLinked' => $user->employeeProfile()->exists(),
                 // without it the cashier counts the drawer without knowing what it should hold
                 'seeExpected' => $user->can('cash_register.view_expected'),
                 // the wallet service: confirm transfers / withdrawals of the branch's lines from the till

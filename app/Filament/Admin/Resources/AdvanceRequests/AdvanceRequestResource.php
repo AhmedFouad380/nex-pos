@@ -158,7 +158,7 @@ class AdvanceRequestResource extends Resource
             ->recordActions([
                 Action::make('approve')->label(__('Approve'))->icon('heroicon-o-check')->color('success')
                     ->visible(fn (AdvanceRequest $r) => $r->status === AdvanceRequestStatus::Pending && auth()->user()?->can('advances.approve')
-                        && $r->requested_by !== auth()->id())
+                        && ! $r->isFor(self::user()))
                     ->fillForm(fn (AdvanceRequest $r) => ['amount' => (float) $r->amount, 'installment_amount' => $r->installment_amount !== null ? (float) $r->installment_amount : null])
                     ->schema([
                         Grid::make(2)->schema([
@@ -174,7 +174,7 @@ class AdvanceRequestResource extends Resource
                     }),
                 Action::make('reject')->label(__('Reject'))->icon('heroicon-o-x-mark')->color('danger')
                     ->visible(fn (AdvanceRequest $r) => $r->status === AdvanceRequestStatus::Pending && auth()->user()?->can('advances.approve')
-                        && $r->requested_by !== auth()->id())
+                        && ! $r->isFor(self::user()))
                     ->schema([TextInput::make('note')->label(__('Reason'))->required()->maxLength(255)])
                     ->action(function (AdvanceRequest $record, array $data) {
                         DomainGuard::run(fn () => app(AdvanceRequestWorkflow::class)->reject($record, self::user(), $data['note']));
