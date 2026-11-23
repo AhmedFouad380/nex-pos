@@ -79,7 +79,7 @@ class StockTransferResource extends Resource
             DateTimePicker::make('transfer_date')->label(__('Date'))->default(now())->required(),
             TextInput::make('shipping_cost')->label(__('Shipping cost'))->numeric()->minValue(0),
             Toggle::make('send_now')->label(__('Send immediately (stock leaves the source now)'))->default(true)->columnSpan(2)->inline(false),
-            StockLinesRepeater::make('items', withCost: false),
+            StockLinesRepeater::make('items', withCost: false, availableAt: 'from_location_id'),
             Textarea::make('note')->label(__('Note'))->columnSpanFull()->rows(2),
         ]);
     }

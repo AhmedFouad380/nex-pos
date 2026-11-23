@@ -80,6 +80,7 @@ it('sends and receives a transfer through the pages', function () {
     livewire(CreateStockTransfer::class)
         ->fillForm(['from_location_id' => $this->main->id, 'to_location_id' => $this->branch->id, 'transfer_date' => now()->toDateTimeString(),
             'send_now' => true, 'items' => [['variation_id' => $this->variation->id, 'unit_id' => $this->piece->id, 'qty' => 4]]])
+        ->assertSee('10.00') // what the sending branch has of the line's item
         ->call('create')
         ->assertHasNoFormErrors();
 
