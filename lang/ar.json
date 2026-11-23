@@ -900,5 +900,22 @@
     "Not posted yet: the differences are against the system quantity when the count started.": "لم يُرحّل بعد: الفروق محسوبة على رصيد النظام وقت بدء الجرد.",
     "Counted by": "القائم بالجرد",
     "Store keeper": "أمين المخزن",
-    "Stock count :number": "جرد :number"
+    "Stock count :number": "جرد :number",
+    "Branch wallets": "محافظ الفروع",
+    "Available to send": "المتاح للتحويل",
+    "Line": "الخط",
+    "Sent today": "تحويلات اليوم",
+    "Sent this month": "تحويلات الشهر",
+    "Received today": "استلام اليوم",
+    "No branch": "بدون فرع",
+    "SIM on the branch phone": "الشريحة في موبايل الفرع",
+    "The branch has one phone; each of its lines is a wallet number.": "لكل فرع موبايل واحد، وكل خط فيه رقم محفظة مستقل.",
+    "Transfer limits": "حدود التحويل",
+    "As the provider sets them for this line. Empty = no limit.": "كما تحددها الشركة لهذا الخط. اتركه فارغًا إذا لم يكن له حد.",
+    "Daily sending limit": "حد التحويل اليومي",
+    "Monthly sending limit": "حد التحويل الشهري",
+    "Daily receiving limit": "حد الاستلام اليومي",
+    "Monthly receiving limit": "حد الاستلام الشهري",
+    "of": "من",
+    "Balance as the phone last reported it, the transfers of today and of this month against the limits of each line, and what it can still send.": "الرصيد كما أرسلته آخر رسالة، وتحويلات اليوم والشهر مقارنةً بحدود كل خط، والمتاح للتحويل."
 }

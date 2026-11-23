@@ -7,7 +7,7 @@ use App\Filament\Admin\Pages\Reports\StockReportPage;
 
 class LowStock extends ListWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
 
     public static function canView(): bool
     {

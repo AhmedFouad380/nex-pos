@@ -2,6 +2,7 @@
 
 namespace App\Domain\Wallet\Actions;
 
+use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Wallet\Enums\WalletTransactionStatus as Status;
 use App\Domain\Wallet\Models\Wallet;
 use App\Domain\Wallet\Models\WalletDevice;
@@ -96,16 +97,33 @@ final class IngestWalletMessage
         }
     }
 
-    /** By the wallet number in the message; otherwise the branch's only wallet of that provider. */
+    /**
+     * The line the message is about: by the wallet number in it; else by the SIM it came on; else the branch line whose
+     * last balance, moved by this amount, gives the balance in the message ("تم تحويل" messages don't name our number);
+     * else the branch's only line of that provider.
+     */
     private function walletFor(WalletTransaction $transaction): ?Wallet
     {
         $wallets = Wallet::query()->where('is_active', true)->where('provider', $transaction->provider);
         if ($transaction->wallet_phone !== null && ($byPhone = (clone $wallets)->where('phone', $transaction->wallet_phone)->first())) {
             return $byPhone;
         }
-        $candidates = (clone $wallets)->where('location_id', $transaction->location_id)->limit(2)->get();
+        $branch = (clone $wallets)->where('location_id', $transaction->location_id)->get();
+        if ($transaction->sim_slot !== null && ($bySim = $branch->firstWhere('sim_slot', $transaction->sim_slot))) {
+            return $bySim;
+        }
+        if ($transaction->balance !== null && $transaction->amount !== null && $branch->count() > 1) {
+            $moved = $transaction->direction === PaymentDirection::In
+                ? (float) $transaction->amount
+                : -((float) $transaction->amount + (float) $transaction->fee);
+            $matches = $branch->filter(fn (Wallet $w) => $w->last_balance !== null
+                && abs((float) $w->last_balance + $moved - (float) $transaction->balance) < 0.01);
+            if ($matches->count() === 1) {
+                return $matches->first();
+            }
+        }
 
-        return $candidates->count() === 1 ? $candidates->first() : null;
+        return $branch->count() === 1 ? $branch->first() : null;
     }
 
     private function recordBalance(WalletTransaction $transaction): void

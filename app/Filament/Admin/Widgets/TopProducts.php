@@ -7,7 +7,7 @@ use App\Filament\Admin\Pages\Reports\SalesReportPage;
 
 class TopProducts extends ListWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 5;
 
     public static function canView(): bool
     {

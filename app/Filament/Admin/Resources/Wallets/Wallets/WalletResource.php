@@ -14,6 +14,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
@@ -59,8 +60,17 @@ class WalletResource extends Resource
             TextInput::make('phone')->label(__('Phone number'))->tel()->maxLength(20)
                 ->helperText(__('Messages that mention this number are matched to this wallet.')),
             Select::make('location_id')->label(__('Location'))->options(fn () => UserLocations::options()),
+            Select::make('sim_slot')->label(__('SIM on the branch phone'))->options([1 => 'SIM 1', 2 => 'SIM 2', 3 => 'SIM 3', 4 => 'SIM 4'])
+                ->helperText(__('The branch has one phone; each of its lines is a wallet number.')),
             Select::make('account_id')->label(__('Account'))->options(fn () => AccountOptions::money())->searchable()
                 ->helperText(__('Where its money is kept in the books. Empty = the account of the mobile wallet payment method.')),
+            Section::make(__('Transfer limits'))->description(__('As the provider sets them for this line. Empty = no limit.'))
+                ->columnSpanFull()->columns(4)->schema([
+                    TextInput::make('daily_out_limit')->label(__('Daily sending limit'))->numeric()->minValue(0),
+                    TextInput::make('monthly_out_limit')->label(__('Monthly sending limit'))->numeric()->minValue(0),
+                    TextInput::make('daily_in_limit')->label(__('Daily receiving limit'))->numeric()->minValue(0),
+                    TextInput::make('monthly_in_limit')->label(__('Monthly receiving limit'))->numeric()->minValue(0),
+                ]),
             Toggle::make('is_active')->label(__('Active'))->default(true),
         ]);
     }
@@ -73,7 +83,10 @@ class WalletResource extends Resource
                 TextColumn::make('name')->label(__('Name'))->searchable()->weight('bold'),
                 TextColumn::make('provider')->label(__('Provider'))->badge(),
                 TextColumn::make('phone')->label(__('Phone number'))->placeholder('—')->copyable(),
-                TextColumn::make('location.name')->label(__('Location'))->placeholder('—'),
+                TextColumn::make('location.name')->label(__('Location'))->placeholder('—')
+                    ->description(fn (Wallet $r) => $r->sim_slot ? 'SIM '.$r->sim_slot : null),
+                TextColumn::make('daily_out_limit')->label(__('Daily sending limit'))->numeric(2)->placeholder('—')->toggleable(),
+                TextColumn::make('monthly_out_limit')->label(__('Monthly sending limit'))->numeric(2)->placeholder('—')->toggleable(),
                 TextColumn::make('account.name')->label(__('Account'))->placeholder(__('Default')),
                 TextColumn::make('last_balance')->label(__('Balance on the phone'))->numeric(2)->placeholder('—')
                     ->description(fn (Wallet $r) => $r->last_balance_at?->diffForHumans()),

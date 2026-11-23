@@ -40,6 +40,9 @@ final class DevicePairing
             ?? throw new DomainException(__('wallet.errors.pairing_code'));
 
         return DB::transaction(function () use ($pending, $name, $platform, $appVersion) {
+            // one phone per branch: pairing a new one retires the old (its messages stay)
+            WalletDevice::query()->where('location_id', $pending['location_id'])->whereNull('revoked_at')->get()
+                ->each(fn (WalletDevice $old) => $this->revoke($old));
             $device = WalletDevice::query()->create([
                 'name' => mb_substr($name, 0, 255),
                 'location_id' => $pending['location_id'],
