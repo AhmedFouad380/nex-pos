@@ -15,6 +15,7 @@ use App\Settings\PosSettings;
 use Filament\Auth\Pages\EditProfile;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Queue;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 use function Pest\Livewire\livewire;
@@ -52,6 +53,16 @@ it('keeps one shift per branch and says who has it open', function () {
     $page = livewire(PointOfSale::class);
     expect($page->instance()->shiftBranches()[$this->location->id]['busy'])->toBe('زميل الوردية')
         ->and($page->instance()->openShift($this->location->id, 0)['error'] ?? null)->toContain('زميل الوردية');
+});
+
+it('says why a shift cannot be opened instead of failing the page', function () {
+    $other = Location::query()->create(['name' => 'فرع آخر', 'code' => 'OTH']);
+    $page = livewire(PointOfSale::class);
+    expect($page->instance()->openShift($other->id, 0)['error'] ?? null)->toBe(__('cash.errors.branch_not_allowed'));
+
+    Role::findByName('cashier')->revokePermissionTo('cash_register.open');
+    $this->cashier->refresh();
+    expect(livewire(PointOfSale::class)->instance()->openShift($this->location->id, 0)['error'] ?? null)->toBe(__('cash.errors.cannot_open'));
 });
 
 it('gives every branch exactly one drawer', function () {

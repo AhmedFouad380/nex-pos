@@ -239,8 +239,13 @@ class PointOfSale extends Page
 
     public function openShift(int $locationId, float $openingFloat = 0): array
     {
-        abort_unless($this->user()->can('cash_register.open'), 403);
-        abort_unless(array_key_exists($locationId, $this->shiftBranches()), 403);
+        // said on the screen, not a bare 403 the cashier can't read
+        if (! $this->user()->can('cash_register.open')) {
+            return ['error' => __('cash.errors.cannot_open')];
+        }
+        if (! array_key_exists($locationId, $this->shiftBranches())) {
+            return ['error' => __('cash.errors.branch_not_allowed')];
+        }
 
         return $this->attempt(function () use ($locationId, $openingFloat) {
             $session = app(OpenCashSession::class)->handle(app(BranchDrawer::class)->for($locationId), $this->user(), max(0, $openingFloat));

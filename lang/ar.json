@@ -944,5 +944,7 @@
     "Your account is not linked to an employee. Ask a manager to choose you as the system user in your employee record.": "حسابك غير مربوط بموظف. اطلب من المدير اختيارك كمستخدم النظام في بيانات الموظف الخاصة بك.",
     "Not linked": "غير مربوط",
     "Link to employee": "ربط بموظف",
-    "Empty = not linked.": "اتركه فارغًا لإلغاء الربط."
+    "Empty = not linked.": "اتركه فارغًا لإلغاء الربط.",
+    "Vouchers only": "السندات فقط",
+    "Invoice payments": "دفعات الفواتير"
 }

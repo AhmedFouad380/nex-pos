@@ -134,6 +134,14 @@ abstract class VoucherResource extends Resource
                 ])->query(fn (Builder $query, array $data) => $query
                     ->when($data['from'] ?? null, fn (Builder $query, $date) => $query->whereDate('paid_at', '>=', $date))
                     ->when($data['until'] ?? null, fn (Builder $query, $date) => $query->whereDate('paid_at', '<=', $date))),
+                // like the old system: a voucher list shows vouchers; money taken on an invoice when it was made is shown on request
+                SelectFilter::make('kind')->label(__('Type'))->default('vouchers')
+                    ->options(['vouchers' => __('Vouchers only'), 'invoices' => __('Invoice payments')])
+                    ->query(fn (Builder $query, array $data) => match ($data['value'] ?? null) {
+                        'vouchers' => $query->whereNotExists(fn ($sub) => static::takenWithInvoice($sub)),
+                        'invoices' => $query->whereExists(fn ($sub) => static::takenWithInvoice($sub)),
+                        default => $query,
+                    }),
                 Filter::make('hide_voided')->label(__('Hide voided'))->default()->query(fn (Builder $query) => $query->whereNull('voided_at')),
             ])
             ->recordActions([
@@ -141,5 +149,23 @@ abstract class VoucherResource extends Resource
                 Action::make('print')->label(__('Print'))->icon('heroicon-o-printer')->color('gray')
                     ->url(fn (Payment $record) => route('vouchers.print', $record), shouldOpenInNewTab: true),
             ]);
+    }
+
+    /**
+     * Payments taken together with an invoice / return (same moment as the document): the POS tenders, the cash paid
+     * on an old-system invoice. Everything else is a voucher of its own.
+     */
+    protected static function takenWithInvoice(QueryBuilder $sub): void
+    {
+        $documents = ['sale' => ['sales', 'sale_date'], 'sale_return' => ['sale_returns', 'return_date'],
+            'purchase' => ['purchases', 'purchase_date'], 'purchase_return' => ['purchase_returns', 'return_date']];
+
+        $sub->from('payment_allocations as pa')->whereColumn('pa.payment_id', 'payments.id')
+            ->where(function ($any) use ($documents) {
+                foreach ($documents as $type => [$table, $date]) {
+                    $any->orWhereExists(fn ($doc) => $doc->from($table)->where('pa.allocatable_type', $type)
+                        ->whereColumn("{$table}.id", 'pa.allocatable_id')->whereColumn("{$table}.{$date}", 'payments.paid_at'));
+                }
+            });
     }
 }
