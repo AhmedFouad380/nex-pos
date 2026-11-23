@@ -3,6 +3,7 @@
 use App\Domain\CashManagement\Enums\CashSessionStatus;
 use App\Domain\Foundation\Models\Location;
 use App\Domain\Inventory\Services\StockLedger;
+use App\Domain\Sales\Actions\CreateSaleReturn;
 use App\Domain\Sales\Models\SaleReturn;
 use App\Domain\Shared\Enums\PaymentStatus;
 use App\Filament\Admin\Resources\CashSessions\Pages\ListCashSessions;
@@ -80,4 +81,20 @@ it('prints a receipt only for people who may see it', function () {
 
     auth()->logout();
     $this->get(route('pos.receipt', $sale))->assertRedirect(route('filament.pos.auth.login'));
+});
+
+it('marks a returned invoice and hides the return button once everything came back', function () {
+    $sale = sell([[$this->tea, 4]], [cash(40)], ['cashSessionId' => $this->session->id]);
+    $line = $sale->items()->value('id');
+    expect($sale->returnState())->toBeNull();
+    livewire(SalePages\ViewSale::class, ['record' => $sale->id])->assertActionVisible('return')->assertDontSee(__('Partially returned'));
+
+    $first = app(CreateSaleReturn::class)->handle($sale, [['sale_item_id' => $line, 'qty' => 1]], cashMethodId(), $this->session->id);
+    expect($sale->returnState())->toBe('partial');
+    livewire(SalePages\ViewSale::class, ['record' => $sale->id])->assertActionVisible('return')
+        ->assertSee(__('Partially returned'))->assertSee($first->number);
+
+    app(CreateSaleReturn::class)->handle($sale, [['sale_item_id' => $line, 'qty' => 3]], cashMethodId(), $this->session->id);
+    expect($sale->returnState())->toBe('full');
+    livewire(SalePages\ViewSale::class, ['record' => $sale->id])->assertActionHidden('return')->assertSee(__('Fully returned'));
 });

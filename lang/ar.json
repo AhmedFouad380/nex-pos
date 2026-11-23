@@ -856,5 +856,7 @@
     "Owed to the employee": "مستحق للموظف",
     ":count voucher|:count vouchers": "{0} لا توجد سندات|{1} سند واحد|{2} سندان|[3,10] :count سندات|[11,*] :count سندًا",
     ":count payroll|:count payrolls": "{0} لا توجد مسيرات|{1} مسير واحد|{2} مسيران|[3,10] :count مسيرات|[11,*] :count مسيرًا",
-    ":count invoice|:count invoices": "{0} لا توجد فواتير|{1} فاتورة واحدة|{2} فاتورتان|[3,10] :count فواتير|[11,*] :count فاتورة"
+    ":count invoice|:count invoices": "{0} لا توجد فواتير|{1} فاتورة واحدة|{2} فاتورتان|[3,10] :count فواتير|[11,*] :count فاتورة",
+    "Fully returned": "مرتجعة بالكامل",
+    "Partially returned": "مرتجعة جزئيًا"
 }

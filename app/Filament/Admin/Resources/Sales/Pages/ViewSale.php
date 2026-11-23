@@ -42,7 +42,8 @@ class ViewSale extends ViewRecord
                     ->url(fn (Sale $r) => route('pos.receipt', $r), shouldOpenInNewTab: true),
             ])->label(__('Print'))->icon('heroicon-o-printer')->color('gray')->button(),
             Action::make('return')->label(__('Return'))->icon('heroicon-o-arrow-uturn-left')->color('gray')
-                ->visible(fn (Sale $r) => $final($r) && auth()->user()?->can('sale_returns.create'))
+                // nothing left to return once every line came back
+                ->visible(fn (Sale $r) => $final($r) && $r->returnState() !== 'full' && auth()->user()?->can('sale_returns.create'))
                 ->url(fn (Sale $r) => SaleReturnResource::getUrl('create', ['sale' => $r->id])),
             DocumentActions::void(fn (Sale $r, string $reason) => app(VoidSale::class)->handle($r, $reason), 'sales.void', $this)
                 ->visible(fn (Sale $r) => $final($r) && auth()->user()?->can('sales.void'))

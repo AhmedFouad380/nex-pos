@@ -90,6 +90,13 @@ class SaleResource extends Resource
                 TextEntry::make('invoice_no')->label(__('Number'))->weight('bold')->copyable()
                     ->state(fn (Sale $r) => $r->invoice_no ?? $r->draft_no),
                 TextEntry::make('status')->label(__('Status'))->badge(),
+                TextEntry::make('return_state')->label(__('Returns'))->badge()
+                    ->state(fn (Sale $r) => $r->returnState())
+                    ->formatStateUsing(fn (string $state) => $state === 'full' ? __('Fully returned') : __('Partially returned'))
+                    ->color(fn (string $state) => $state === 'full' ? 'danger' : 'warning')
+                    ->icon('heroicon-m-arrow-uturn-left')
+                    ->helperText(fn (Sale $r) => $r->returns()->whereNull('voided_at')->pluck('number')->implode('، '))
+                    ->visible(fn (Sale $r) => $r->returnState() !== null),
                 TextEntry::make('customer.name')->label(__('Customer')),
                 TextEntry::make('sale_date')->label(__('Date'))->dateTime(),
                 TextEntry::make('location.name')->label(__('Location')),

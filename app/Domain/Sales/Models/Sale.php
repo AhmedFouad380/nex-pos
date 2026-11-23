@@ -231,6 +231,22 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class, 'sale_id');
     }
 
+    /**
+     * How much of the invoice came back: 'full' (every line returned), 'partial', or null (nothing).
+     * Counts the invoice's own lines (not bundle components); a voided return gives its quantity back.
+     */
+    public function returnState(): ?string
+    {
+        $lines = $this->items()->whereNull('parent_item_id')->where('qty', '>', 0)
+            ->selectRaw('count(*) as n, sum(case when qty_returned > 0 then 1 else 0 end) as touched, sum(case when qty_returned >= qty then 1 else 0 end) as full')
+            ->first();
+        if (! $lines || (int) $lines->getAttribute('n') === 0 || (int) $lines->getAttribute('touched') === 0) {
+            return null;
+        }
+
+        return (int) $lines->getAttribute('full') === (int) $lines->getAttribute('n') ? 'full' : 'partial';
+    }
+
     /** @return HasMany<SaleReturn, $this> */
     public function returns(): HasMany
     {
