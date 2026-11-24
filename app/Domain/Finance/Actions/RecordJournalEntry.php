@@ -2,6 +2,8 @@
 
 namespace App\Domain\Finance\Actions;
 
+use App\Domain\CRM\Models\Contact;
+use App\Domain\CRM\Services\ContactLedger;
 use App\Domain\Finance\Data\JournalDraft;
 use App\Domain\Finance\Enums\AccountSubType;
 use App\Domain\Finance\Models\Account;
@@ -42,7 +44,11 @@ final class RecordJournalEntry
             $draft->debit($account->id, $debit->minus($credit), $line['contact_id'] ?? null, $line['memo'] ?? null);
         }
 
-        return $this->posting->manual($draft);
+        $entry = $this->posting->manual($draft);
+        // a line naming a contact moves their balance (their statement lists manual entries)
+        $this->refreshContacts(array_filter(array_column($lines, 'contact_id')));
+
+        return $entry;
     }
 
     public function reverse(JournalEntry $entry, ?CarbonInterface $at = null): JournalEntry
@@ -51,6 +57,16 @@ final class RecordJournalEntry
             throw new DomainException(__('finance.errors.not_manual'));
         }
 
-        return $this->posting->reverse($entry, $at);
+        $reversal = $this->posting->reverse($entry, $at);
+        $this->refreshContacts($entry->lines()->whereNotNull('contact_id')->pluck('contact_id')->all());
+
+        return $reversal;
+    }
+
+    /** @param array<int|string|null> $ids */
+    private function refreshContacts(array $ids): void
+    {
+        $ledger = app(ContactLedger::class);
+        Contact::query()->whereKey(array_unique(array_filter($ids)))->get()->each(fn (Contact $contact) => $ledger->refresh($contact));
     }
 }

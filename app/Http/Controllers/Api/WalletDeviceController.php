@@ -128,6 +128,7 @@ class WalletDeviceController
                 ->where(fn (Builder $b) => $b->whereNull('sub_type')->orWhereNotIn('sub_type', RecordJournalEntry::CONTROL_ACCOUNTS))
                 ->when($q !== '', fn (Builder $b) => $b->where(fn (Builder $w) => $w->where('name', 'like', $like)->orWhere('code', 'like', $like)))
                 ->orderBy('code')->limit(50)->get()->map(fn (Account $a) => ['id' => $a->id, 'label' => $a->code.' — '.$a->name, 'detail' => null]),
+            WalletTarget::Service => collect(), // the cash goes through the cashier's shift: nothing to pick
         };
 
         return response()->json(['data' => $results->values()->all()]);

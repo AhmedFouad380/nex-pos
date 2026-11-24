@@ -3,6 +3,9 @@
 return [
     'salary_for' => 'راتب شهر :month - :number',
     'advance_note' => 'سلفة :number',
+    'legacy_profile_note' => 'أُنشئ تلقائيًا من حساب الموظف في النظام القديم.',
+    'legacy_advance_note' => 'من النظام القديم: سند الصرف :number.',
+    'legacy_advance_part_note' => 'من النظام القديم: المتبقي من سند الصرف :number (مبلغه :amount).',
     'advance_repayment' => 'سداد سلفة :number',
     'errors' => [
         'own_request' => 'لا يمكنك اعتماد أو رفض طلب سلفة خاص بك.',

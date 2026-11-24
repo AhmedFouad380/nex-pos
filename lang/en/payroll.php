@@ -3,6 +3,9 @@
 return [
     'salary_for' => 'Salary for :month - :number',
     'advance_note' => 'Advance :number',
+    'legacy_profile_note' => 'Created from the employee account of the old system.',
+    'legacy_advance_note' => 'From the old system: payment voucher :number.',
+    'legacy_advance_part_note' => 'From the old system: what is left of payment voucher :number (:amount).',
     'advance_repayment' => 'Repayment of advance :number',
     'errors' => [
         'own_request' => 'You cannot decide on your own advance request.',
