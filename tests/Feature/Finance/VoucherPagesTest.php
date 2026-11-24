@@ -93,7 +93,7 @@ it('offers customers and suppliers, plus an account for payments only', function
     expect(Payment::query()->sole())->contact_id->toBeNull()->counter_account_id->toBe($rent);
 });
 
-it('lists vouchers only by default, and the money taken on invoices on request', function () {
+it('lists vouchers only; money taken on an invoice stays on the invoice and its page still opens', function () {
     $tea = makeVariation([], ['sell_price' => 10, 'sell_price_inc_tax' => 10]);
     makePurchase(makeSupplier(), [[$tea, 10, 6]]);
     $customer = makeCustomer();
@@ -103,7 +103,6 @@ it('lists vouchers only by default, and the money taken on invoices on request',
         ->callAction('newVoucher', ($this->voucher)(['party' => 'customer', 'contact_id' => $customer->id, 'amount' => 5]));
     $voucher = Payment::query()->where('direction', PaymentDirection::In)->whereKeyNot($tendered->id)->sole();
 
-    livewire(ListReceiptVouchers::class)->assertCanSeeTableRecords([$voucher])->assertCanNotSeeTableRecords([$tendered])
-        ->filterTable('kind', 'invoices')->assertCanSeeTableRecords([$tendered])->assertCanNotSeeTableRecords([$voucher])
-        ->filterTable('kind', null)->assertCanSeeTableRecords([$voucher, $tendered]);
+    livewire(ListReceiptVouchers::class)->assertCanSeeTableRecords([$voucher])->assertCanNotSeeTableRecords([$tendered]);
+    livewire(ViewReceiptVoucher::class, ['record' => $tendered->id])->assertOk();
 });

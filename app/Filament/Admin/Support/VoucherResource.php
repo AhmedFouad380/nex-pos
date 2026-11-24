@@ -103,7 +103,9 @@ abstract class VoucherResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['contact', 'counterAccount', 'paymentMethod', 'account', 'location', 'creator']))
+            // like the old system, the list holds vouchers only: money taken on an invoice when it was made shows on that invoice
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['contact', 'counterAccount', 'paymentMethod', 'account', 'location', 'creator'])
+                ->whereNotExists(fn ($sub) => static::takenWithInvoice($sub)))
             ->defaultSort('paid_at', 'desc')
             ->columns([
                 TextColumn::make('number')->label(__('Number'))->searchable()->weight('bold')
@@ -134,14 +136,6 @@ abstract class VoucherResource extends Resource
                 ])->query(fn (Builder $query, array $data) => $query
                     ->when($data['from'] ?? null, fn (Builder $query, $date) => $query->whereDate('paid_at', '>=', $date))
                     ->when($data['until'] ?? null, fn (Builder $query, $date) => $query->whereDate('paid_at', '<=', $date))),
-                // like the old system: a voucher list shows vouchers; money taken on an invoice when it was made is shown on request
-                SelectFilter::make('kind')->label(__('Type'))->default('vouchers')
-                    ->options(['vouchers' => __('Vouchers only'), 'invoices' => __('Invoice payments')])
-                    ->query(fn (Builder $query, array $data) => match ($data['value'] ?? null) {
-                        'vouchers' => $query->whereNotExists(fn ($sub) => static::takenWithInvoice($sub)),
-                        'invoices' => $query->whereExists(fn ($sub) => static::takenWithInvoice($sub)),
-                        default => $query,
-                    }),
                 Filter::make('hide_voided')->label(__('Hide voided'))->default()->query(fn (Builder $query) => $query->whereNull('voided_at')),
             ])
             ->recordActions([
