@@ -159,28 +159,26 @@ final class DocumentsStage implements Stage
     private function events(): array
     {
         $keep = array_flip(self::HEADER);
+        // The old system's reports and stock only see a document that has both its header and its lines, so a header
+        // without lines (stock counts keep theirs elsewhere) and lines without a header are left out, as it does.
         $events = [];
         foreach ($this->package->rows('Invoice') as $row) {
             $type = (int) $row['InvoiceType'];
-            if (isset(self::TYPES[$type]) && $type !== 20) {
-                $events[] = ['Invoice', self::invoiceKey($row), $type, array_intersect_key($row, $keep), (string) $row['InvoiceDate']];
+            if (! isset(self::TYPES[$type]) || $type === 20) {
+                continue;
             }
+            $key = self::invoiceKey($row);
+            if ($type !== 19 && ! isset($this->lines[$key])) {
+                $this->context->warn(__('legacy.warnings.header_without_lines', ['doc' => $this->number('', $row), 'key' => $key, 'amount' => $row['NetTotal'] ?? 0]));
+
+                continue;
+            }
+            $events[] = ['Invoice', $key, $type, array_intersect_key($row, $keep), (string) $row['InvoiceDate']];
         }
-        // lines whose header is gone (the old system lost it while editing): take the header's last saved version
         $headers = array_flip(array_column($events, 1));
-        $orphans = array_diff_key($this->lines, $headers);
-        if ($orphans !== []) {
-            $history = [];
-            foreach ($this->package->rows('InvoiceHistory') as $row) {
-                $key = self::invoiceKey($row);
-                if (isset($orphans[$key]) && (int) $row['HistoryId'] >= (int) ($history[$key]['HistoryId'] ?? 0)) {
-                    $history[$key] = $row;
-                }
-            }
-            foreach ($history as $key => $row) {
-                $this->context->warn(__('legacy.warnings.recovered_header', ['doc' => $key, 'lines' => count($orphans[$key])]));
-                $events[] = ['Invoice', $key, (int) $row['InvoiceType'], array_intersect_key($row, $keep), (string) $row['InvoiceDate']];
-            }
+        foreach (array_diff_key($this->lines, $headers) as $key => $lines) {
+            $this->context->warn(__('legacy.warnings.lines_without_header', ['key' => $key, 'lines' => count($lines),
+                'qty' => array_sum(array_map(fn ($l) => (float) $l['Quantity'], $lines))]));
         }
         foreach ($this->package->rows('GoodTransfer') as $row) {
             $events[] = ['GoodTransfer', ImportContext::key($row['BranchId'], $row['FYId'], $row['GTId']), 20, $row, (string) $row['GTDate']];

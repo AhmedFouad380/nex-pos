@@ -11,7 +11,8 @@ return [
         'already_running' => 'Another import is running.',
     ],
     'warnings' => [
-        'recovered_header' => 'Document :doc has :lines lines but no header in the old system; its header was taken from the last saved version in the history. Please review it.',
+        'header_without_lines' => 'Document :doc (:key) worth :amount was not imported: it has a header but no lines in the old system, so its reports and stock ignore it.',
+        'lines_without_header' => ':lines lines (:qty pcs) of document :key were not imported: lines without a header in the old system, which its reports and stock ignore.',
         'shift_without_drawer' => 'Shift :id belongs to a missing POS terminal.',
         'document_skipped' => 'Skipped :doc: :reason',
         'unknown_item' => 'Unknown item (ItemId :id) in :doc.',

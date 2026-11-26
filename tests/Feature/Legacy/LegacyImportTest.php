@@ -175,6 +175,22 @@ function legacyMovements(): array
     ];
 }
 
+it('leaves out what the old system ignores: a header without lines and lines without a header', function () {
+    $tables = legacyTables();
+    $tables['ChartOfAccount'][1][] = ['AccountId' => '419', 'NameA' => 'مصروفات محل', 'NameE' => '', 'AccountIdParent' => '4', 'AccountLevel' => 2];
+    $moves = legacyMovements();
+    $header = $moves['Invoice'][1][1];
+    $moves['Invoice'][1][] = [...$header, 'InvoiceId' => '7', 'InvoiceCode' => '7', 'NetTotal' => '350.00'];        // sale with no lines
+    $moves['InvoiceDetails'][1][] = [...$moves['InvoiceDetails'][1][0], 'InvoiceType' => 8, 'InvoiceId' => '99', 'Quantity' => '25']; // opening lines, no header
+    $import = app(LegacyImporter::class)->run(LegacyImport::query()->create(['source_name' => 'test', 'package_path' => legacyPackage([...$tables, ...$moves])]));
+
+    expect($import->status)->toBe('completed')
+        ->and(Sale::query()->where('invoice_no', 'INV1-23-7')->exists())->toBeFalse()
+        ->and(Sale::query()->where('status', 'final')->count())->toBe(2)
+        ->and((string) app(StockLedger::class)->onHand(Variation::query()->where('sku', 'A-1')->value('id'), Location::query()->value('id')))->toBe('6.0000') // the 25 headerless pieces stay out
+        ->and(collect($import->report['warnings'])->filter(fn ($w) => str_contains($w, '1|10|1|7') || str_contains($w, '1|8|1|99'))->count())->toBe(2);
+});
+
 it('replays sales, returns, purchases, vouchers and salary entries with the right balances and stock', function () {
     $tables = legacyTables();
     $tables['ChartOfAccount'][1][] = ['AccountId' => '419', 'NameA' => 'مصروفات محل', 'NameE' => '', 'AccountIdParent' => '4', 'AccountLevel' => 2];
