@@ -244,9 +244,9 @@ final class ReconciliationStage implements Stage
             return;
         }
         fwrite($handle, "\xEF\xBB\xBF");
-        fputcsv($handle, ['key', 'name', 'kind', 'old', 'new', 'difference']);
+        fputcsv($handle, ['key', 'name', 'kind', 'old', 'new', 'difference'], escape: '');
         foreach ($rows as $row) {
-            fputcsv($handle, $row);
+            fputcsv($handle, $row, escape: '');
         }
         fclose($handle);
         File::chmod($path, 0664);

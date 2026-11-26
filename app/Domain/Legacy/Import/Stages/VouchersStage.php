@@ -47,6 +47,9 @@ final class VouchersStage implements Stage
     /** @var array<string, int> old expense account code => category id */
     private array $categories = [];
 
+    /** @var array<string, string> old contact id => its account, for contacts whose card was deleted later */
+    private array $deletedCards = [];
+
     public function name(): string
     {
         return 'vouchers';
@@ -56,6 +59,11 @@ final class VouchersStage implements Stage
     {
         $this->context = $context;
         $this->cashMethod = PaymentMethod::query()->where('type', PaymentMethodType::Cash)->value('id');
+        foreach ($package->rows('SupCusEmpHistory') as $h) {
+            if (filled($h['AccountId'] ?? null)) {
+                $this->deletedCards[(string) $h['Id']] = (string) $h['AccountId'];
+            }
+        }
         $details = [];
         foreach ($package->rows('FinancialTransactionsDetails') as $d) {
             $details[ImportContext::key($d['BranchId'], $d['JVType'], $d['FYId'], $d['FTId'])][] = $d;
@@ -209,6 +217,11 @@ final class VouchersStage implements Stage
         $id = $this->context->newId('SupCusEmp', (string) $sceId);
         if ($id) {
             return $id;
+        }
+        // a card deleted after its vouchers were made: the old ledger still posts them on the card's account
+        $account = $this->deletedCards[(string) $sceId] ?? null;
+        if ($account !== null && $this->context->newType('ChartOfAccount', $account) === 'contact') {
+            return (int) $this->context->newId('ChartOfAccount', $account);
         }
         [$type, $code] = match ($holder) {
             3 => [ContactType::Supplier, 'S-UNKNOWN'],

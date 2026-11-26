@@ -551,10 +551,24 @@ final class DocumentsStage implements Stage
         ]);
     }
 
-    /** Cash paid on the invoice (type 5) → a payment allocated to it. Credit stays due. */
+    /**
+     * Cash paid on the invoice (type 5) → a payment allocated to it. Credit stays due.
+     * The old payment names the account the money went to (from): a box, a bank or a cashier's custody is that box;
+     * the document's own contact is no payment at all (the amount went on their account, as credit); another
+     * contact or ledger account means that account took the money: the payment goes through the branch box and a
+     * mirror payment moves it on to that account, as vouchers paid out of someone's pocket do.
+     */
     private function pay(Model $document, string $key, PaymentDirection $direction, ?int $contactId, int $location, Carbon $date, ?int $sessionId): void
     {
         foreach ($this->payments[$key] ?? [] as $i => $p) {
+            $code = $p['account'];
+            $box = $this->context->newId('Custody', $code) ?? $this->moneyAccount($code);
+            $onAccount = $box === null && $code !== '' ? $this->onAccount($code) : null;
+            if ($onAccount && $onAccount['contact'] !== null && $onAccount['contact'] === $contactId) {
+                $this->context->count($this->name(), 'paid on own account (left due)');
+
+                continue;
+            }
             $amount = Decimal::of($p['amount']);
             $due = Decimal::of($document->refresh()->getAttribute('due_total'));
             $allocate = BigDecimal::min($amount, BigDecimal::max($due, BigDecimal::zero()));
@@ -562,12 +576,43 @@ final class DocumentsStage implements Stage
                 direction: $direction, paymentMethodId: (int) $this->cashMethod, amount: Decimal::toDb($amount), contactId: $contactId,
                 locationId: $location, paidAt: $date, allocations: $allocate->isPositive() ? [[$document, Decimal::toDb($allocate)]] : [],
                 // the cashier's custody box when the old payment went there, else the branch box
-                accountId: $this->context->newId('Custody', $p['account']) ?? $this->moneyAccount($p['account']), cashSessionId: $sessionId,
+                accountId: $box, cashSessionId: $sessionId,
             ));
             $this->context->remember('InvoicePayment', ImportContext::key($key, $i), $payment);
             $this->context->count($this->name(), 'invoice payments');
+            if ($onAccount) {
+                $mirror = app(RecordPayment::class)->handle(new PaymentData(
+                    direction: $direction === PaymentDirection::In ? PaymentDirection::Out : PaymentDirection::In,
+                    paymentMethodId: (int) $this->cashMethod, amount: Decimal::toDb($amount), contactId: $onAccount['contact'],
+                    counterAccountId: $onAccount['account'], locationId: $location, paidAt: $date, cashSessionId: $sessionId,
+                    reference: $document->getAttribute('invoice_no') ?? $document->getAttribute('number'),
+                ));
+                $this->context->remember('InvoicePayment', ImportContext::key($key, $i, 'account'), $mirror);
+                $this->context->count($this->name(), 'paid on another account');
+                if ($onAccount['contact'] !== null) {
+                    app(ContactLedger::class)->refresh(Contact::query()->findOrFail($onAccount['contact']));
+                }
+            }
         }
         app(PaymentStatusRefresher::class)->refresh($document);
+    }
+
+    /**
+     * The contact or ledger account an invoice was paid "on account" of, when it is not a box.
+     *
+     * @return array{contact: ?int, account: ?int}|null
+     */
+    private function onAccount(string $code): ?array
+    {
+        $id = $this->context->newId('ChartOfAccount', $code);
+        if ($id === null) {
+            return null;
+        }
+        if ($this->context->newType('ChartOfAccount', $code) === 'contact') {
+            return ['contact' => $id, 'account' => null];
+        }
+
+        return DB::table('accounts')->where('id', $id)->where('is_postable', true)->exists() ? ['contact' => null, 'account' => $id] : null;
     }
 
     /** A real box / bank of the old system, if the payment named one. */

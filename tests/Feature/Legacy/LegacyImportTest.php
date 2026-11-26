@@ -191,6 +191,36 @@ it('leaves out what the old system ignores: a header without lines and lines wit
         ->and(collect($import->report['warnings'])->filter(fn ($w) => str_contains($w, '1|10|1|7') || str_contains($w, '1|8|1|99'))->count())->toBe(2);
 });
 
+it('follows a payment made on account: the own contact leaves it due, another contact or account takes the money', function () {
+    $tables = legacyTables();
+    $tables['ChartOfAccount'][1][] = ['AccountId' => '419', 'NameA' => 'مصروفات محل', 'NameE' => '', 'AccountIdParent' => '4', 'AccountLevel' => 2];
+    // a customer card deleted after its receipt was made: the old ledger still posts the receipt on the card's account
+    $tables['SupCusEmpHistory'] = [[], [['Id' => '9', 'FormType' => 51, 'NameA' => 'الرصيد', 'AccountId' => '1020030002', 'TransactionTypeId' => 3]]];
+    $moves = legacyMovements();
+    $pay = fn ($type, $inv, $value, $account) => ['BranchId' => '1', 'InvoiceType' => $type, 'FYId' => '1', 'InvoiceId' => $inv, 'PaymentId' => '1',
+        'PaymentType' => 5, 'PaymentValue' => $value, 'DueDate' => null, 'AccountId' => $account];
+    $moves['InvoicePayment'][1] = [
+        $pay(10, '1', '130.00', '419'),         // cash sale whose money went to the shop expenses account
+        $pay(10, '2', '195.00', '1020030001'),  // أحمد's sale "paid" on his own account: credit, it stays due
+        $pay(9, '1', '0.00', ''),
+        $pay(17, '1', '65.00', '1020030002'),   // the refund paid out of الرصيد's account
+    ];
+    $moves['FinancialTransactions'][1][] = ['BranchId' => '1', 'JVType' => 140, 'FYId' => '1', 'FTId' => '4', 'FTSerial' => '4', 'FTDate' => '2023-02-04T10:00:00',
+        'TotalAmount' => '20.00', 'AccountId' => '1020010001', 'VoucherHolder' => 2, 'SCEId' => '9', 'Description' => ''];
+    $import = app(LegacyImporter::class)->run(LegacyImport::query()->create(['source_name' => 'test', 'package_path' => legacyPackage([...$tables, ...$moves])]));
+    expect($import->status)->toBe('completed');
+
+    $credit = Sale::query()->where('invoice_no', 'INV1-23-2')->firstOrFail();
+    $expenses = Account::query()->where('code', '419')->value('id');
+
+    expect($credit->due_total)->toBe('95.0000')                                           // 195 − the 100 receipt voucher, nothing from the "payment"
+        ->and(Contact::query()->where('name', 'أحمد')->value('balance'))->toBe('345.0000')
+        ->and(Sale::query()->where('invoice_no', 'INV1-23-1')->firstOrFail()->payment_status->value)->toBe('paid')
+        ->and(Contact::query()->where('name', 'الرصيد')->value('balance'))->toBe('-85.0000') // −65 refund paid from it − 20 receipt
+        ->and((float) DB::table('journal_lines')->where('account_id', $expenses)->sum(DB::raw('debit - credit')))->toBe(3160.0) // 30 + 3000 + the 130 sale
+        ->and(Contact::query()->where('code', 'C-UNKNOWN')->exists())->toBeFalse();
+});
+
 it('replays sales, returns, purchases, vouchers and salary entries with the right balances and stock', function () {
     $tables = legacyTables();
     $tables['ChartOfAccount'][1][] = ['AccountId' => '419', 'NameA' => 'مصروفات محل', 'NameE' => '', 'AccountIdParent' => '4', 'AccountLevel' => 2];
