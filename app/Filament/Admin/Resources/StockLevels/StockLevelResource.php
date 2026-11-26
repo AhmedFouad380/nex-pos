@@ -12,6 +12,7 @@ use App\Filament\Concerns\ScopesToUserLocations;
 use App\Filament\NavigationGroup;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\Summarizers\Sum;
 use Filament\Tables\Columns\Summarizers\Summarizer;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -70,7 +71,8 @@ class StockLevelResource extends Resource
                 TextColumn::make('qty_on_hand')->label(__('On hand'))->numeric(2)->sortable()
                     ->suffix(fn (StockLevel $r) => ' '.$r->variation->product->unit?->short_name)
                     ->color(fn (StockLevel $r) => (float) $r->qty_on_hand < 0 ? 'danger'
-                        : ($r->variation->product->alert_qty !== null && (float) $r->qty_on_hand <= (float) $r->variation->product->alert_qty ? 'warning' : null)),
+                        : ($r->variation->product->alert_qty !== null && (float) $r->qty_on_hand <= (float) $r->variation->product->alert_qty ? 'warning' : null))
+                    ->summarize(Sum::make()->label(__('Total quantity'))->numeric(2)),
                 TextColumn::make('avg_cost')->label(__('Average cost'))->numeric(2)->visible($canSeeCost),
                 TextColumn::make('stock_value')->label(__('Stock value'))->numeric(2)->sortable()->visible($canSeeCost)
                     ->summarize(Summarizer::make()->label(__('Total value'))->numeric(2)

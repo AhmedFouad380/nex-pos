@@ -52,6 +52,16 @@ it('posts opening stock from the form and shows it everywhere', function () {
     livewire(ListStockLevels::class)->assertOk()->assertSee($this->variation->product->name);
 });
 
+it('totals the quantity on hand under the stock list, for the filtered rows', function () {
+    $other = makeVariation(['unit_id' => $this->piece->id], ['purchase_price' => 3]);
+    openingStock($this->main->id, $this->variation->id, $this->piece->id, 10, 5);
+    openingStock($this->main->id, $other->id, $this->piece->id, 2.5, 3);
+    openingStock($this->branch->id, $other->id, $this->piece->id, 4, 3);
+
+    livewire(ListStockLevels::class)->assertOk()->assertSee('إجمالي الكمية')->assertSee('16.50')
+        ->filterTable('location_id', $this->main->id)->assertSee('12.50');
+});
+
 it('shows insufficient stock as a notification and saves nothing', function () {
     livewire(CreateStockAdjustment::class)
         ->fillForm(['location_id' => $this->main->id, 'type' => 'damage', 'adjusted_at' => now()->toDateTimeString(),
