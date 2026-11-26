@@ -11,6 +11,7 @@ use App\Domain\Finance\Models\Expense;
 use App\Domain\Finance\Models\ExpenseCategory;
 use App\Domain\Foundation\Models\Location;
 use App\Domain\Inventory\Services\StockLedger;
+use App\Domain\Legacy\Import\ImportContext;
 use App\Domain\Legacy\Import\LegacyImporter;
 use App\Domain\Legacy\Models\LegacyImport;
 use App\Domain\Legacy\Models\LegacyRecord;
@@ -117,6 +118,16 @@ it('can run again without duplicating anything', function () {
     ($this->import)();
 
     expect($counts())->toBe($before);
+});
+
+it('still sees the saved map of a table after remembering into it first (a run that skips the accounts stage)', function () {
+    ($this->import)();
+    $context = new ImportContext(LegacyImport::query()->create(['source_name' => 'again']));
+
+    $context->remember('ChartOfAccount', '1020030009', Contact::query()->firstOrFail()); // contacts stage runs first
+
+    expect($context->newId('ChartOfAccount', '1020010001'))->toBe(Account::query()->where('code', '1020010001')->value('id'))
+        ->and($context->newType('ChartOfAccount', '1020010001'))->toBe('account');
 });
 
 function legacyMovements(): array

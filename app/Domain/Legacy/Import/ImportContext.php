@@ -50,6 +50,7 @@ final class ImportContext
     {
         $type = $model->getMorphClass();
         $id = (int) $model->getKey();
+        $this->entries($legacyTable); // load the saved map first, or a later lookup sees only what this run remembered
         if (($this->map[$legacyTable][$key] ?? null) === [$type, $id]) {
             return;
         }
