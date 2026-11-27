@@ -52,7 +52,7 @@ class Login extends \Filament\Auth\Pages\Login
             $this->deniedReason = match (true) {
                 ! $user->is_active => __('This account is suspended. Ask a manager to activate it.'),
                 ! $user->allow_login => __('Login is not activated for this account. Ask a manager to activate it.'),
-                default => __('This account\'s role may open neither the dashboard nor the point of sale. Ask a manager to give the role the ":admin" or ":pos" permission.', [
+                default => __('The role of this account may open neither the dashboard nor the point of sale. Ask a manager to give the role the ":admin" or ":pos" permission.', [
                     'admin' => trans('permissions.permissions')['admin.access'] ?? 'admin.access', 'pos' => trans('permissions.permissions')['pos.access'] ?? 'pos.access']),
             };
         }
