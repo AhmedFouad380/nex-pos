@@ -948,5 +948,11 @@
     "Empty = not linked.": "اتركه فارغًا لإلغاء الربط.",
     "This account is suspended. Ask a manager to activate it.": "هذا الحساب موقوف. اطلب من المدير تفعيله.",
     "Login is not activated for this account. Ask a manager to activate it.": "تسجيل الدخول غير مفعّل لهذا الحساب. اطلب من المدير تفعيله.",
-    "The role of this account may open neither the dashboard nor the point of sale. Ask a manager to give the role the \":admin\" or \":pos\" permission.": "دور هذا الحساب لا يسمح بدخول لوحة الإدارة ولا نقطة البيع. اطلب من المدير إضافة صلاحية «:admin» أو «:pos» للدور."
+    "The role of this account may open neither the dashboard nor the point of sale. Ask a manager to give the role the \":admin\" or \":pos\" permission.": "دور هذا الحساب لا يسمح بدخول لوحة الإدارة ولا نقطة البيع. اطلب من المدير إضافة صلاحية «:admin» أو «:pos» للدور.",
+    "Time": "الوقت",
+    "Party": "الطرف",
+    "Other cash received": "مقبوضات نقدية أخرى",
+    "Other cash paid out": "مدفوعات نقدية أخرى",
+    "Shift operations": "عمليات الوردية",
+    "Advances, vouchers, expenses and returns paid from or into the branch cash during the shift.": "السلف والسندات والمصروفات والمرتجعات المدفوعة من خزنة الفرع أو إليها أثناء الوردية."
 }

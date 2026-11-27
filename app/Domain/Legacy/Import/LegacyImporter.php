@@ -3,6 +3,7 @@
 namespace App\Domain\Legacy\Import;
 
 use App\Domain\CashManagement\Services\BranchDrawer;
+use App\Domain\CashManagement\Services\ShiftLink;
 use App\Domain\CRM\Models\Contact;
 use App\Domain\CRM\Services\ContactLedger;
 use App\Domain\Legacy\Import\Stages\AccountsStage;
@@ -59,7 +60,8 @@ final class LegacyImporter
         // hundreds of thousands of copied records: one "import" entry in the activity log, not one per record
         activity('legacy_import')->event('import')->withProperty('package', basename((string) $import->package_path))->log('import');
 
-        return app(ActivityLogger::class)->withoutLogging(fn () => $this->runStages($import, $only, $onStage));
+        // old payments belong to no shift of the new system, even when dated on a day a shift is open
+        return ShiftLink::without(fn () => app(ActivityLogger::class)->withoutLogging(fn () => $this->runStages($import, $only, $onStage)));
     }
 
     /** @param list<string>|null $only */

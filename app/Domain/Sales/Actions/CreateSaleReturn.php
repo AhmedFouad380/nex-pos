@@ -117,11 +117,14 @@ final class CreateSaleReturn
             ]);
 
             if ($refundMethodId) {
-                $this->payments->handle(new PaymentData(
+                $refund = $this->payments->handle(new PaymentData(
                     direction: PaymentDirection::Out, paymentMethodId: $refundMethodId, amount: (string) $total,
                     contactId: $sale->customer_id, locationId: $sale->location_id, paidAt: $return->return_date,
                     allocations: [[$return, (string) $total]], cashSessionId: $cashSessionId,
                 ));
+                if ($return->cash_session_id === null && $refund->cash_session_id !== null) {
+                    $return->update(['cash_session_id' => $refund->cash_session_id]); // refunded from the box of an open shift
+                }
             }
 
             $this->statuses->refresh($return);

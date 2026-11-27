@@ -79,7 +79,7 @@ final class CreateExpense
     /** Pays (part of) an expense. The voucher has no contact: it settles "accrued expenses". */
     public function pay(Expense $expense, int $paymentMethodId, string|int|float $amount, ?int $accountId = null, ?CarbonInterface $at = null): void
     {
-        app(RecordPayment::class)->handle(new PaymentData(
+        $payment = app(RecordPayment::class)->handle(new PaymentData(
             direction: PaymentDirection::Out,
             paymentMethodId: $paymentMethodId,
             amount: Decimal::toDb($amount),
@@ -91,6 +91,9 @@ final class CreateExpense
             cashSessionId: $expense->cash_session_id,
             note: $expense->note,
         ));
+        if ($expense->cash_session_id === null && $payment->cash_session_id !== null) {
+            $expense->update(['cash_session_id' => $payment->cash_session_id]); // paid from the box of an open shift
+        }
         $this->statuses->refresh($expense);
     }
 }

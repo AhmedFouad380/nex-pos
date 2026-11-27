@@ -25,8 +25,10 @@
         <x-filament::section :heading="__('Cash summary')">
             <table class="cs-table">
                 <tr><td>{{ __('Opening cash') }}</td><td class="num">{{ $fmt($sum['opening']) }}</td></tr>
-                <tr><td>{{ __('Cash sales') }}</td><td class="num">{{ $fmt($sum['cash_in_payments']) }}</td></tr>
-                <tr><td>{{ __('Cash refunds') }}</td><td class="num">-{{ $fmt($sum['cash_out_payments']) }}</td></tr>
+                <tr><td>{{ __('Cash sales') }}</td><td class="num">{{ $fmt($sum['cash_sales']) }}</td></tr>
+                <tr><td>{{ __('Other cash received') }}</td><td class="num">{{ $fmt($sum['cash_received_other']) }}</td></tr>
+                <tr><td>{{ __('Cash refunds') }}</td><td class="num">-{{ $fmt($sum['cash_refunds']) }}</td></tr>
+                <tr><td>{{ __('Other cash paid out') }}</td><td class="num">-{{ $fmt($sum['cash_paid_other']) }}</td></tr>
                 <tr><td>{{ __('Cash in') }}</td><td class="num">{{ $fmt($sum['cash_in']) }}</td></tr>
                 <tr><td>{{ __('Cash out') }}</td><td class="num">-{{ $fmt($sum['cash_out']) }}</td></tr>
                 <tr class="cs-strong"><td>{{ __('Expected in drawer') }}</td><td class="num">{{ $fmt($sum['expected_cash']) }}</td></tr>
@@ -46,6 +48,25 @@
             </table>
         </x-filament::section>
     </div>
+    @php($operations = $this->operations())
+    @if ($operations !== [])
+        <x-filament::section :heading="__('Shift operations')" :description="__('Advances, vouchers, expenses and returns paid from or into the branch cash during the shift.')">
+            <table class="cs-table">
+                <tr><th>{{ __('Time') }}</th><th>{{ __('Number') }}</th><th>{{ __('Type') }}</th><th>{{ __('Party') }}</th><th>{{ __('Payment method') }}</th><th>{{ __('By') }}</th><th class="num">{{ __('Amount') }}</th></tr>
+                @foreach ($operations as ['payment' => $p, 'kind' => $kind])
+                    <tr>
+                        <td>{{ $p->paid_at->format('Y-m-d H:i') }}</td>
+                        <td><a href="{{ \App\Filament\Admin\Support\VoucherResource::urlFor($p) }}" class="text-primary-600 hover:underline">{{ $p->number }}</a></td>
+                        <td>{{ __('cash.kinds.'.$kind) }}</td>
+                        <td>{{ $p->contact?->name ?? $p->counterAccount?->name ?? '—' }}</td>
+                        <td>{{ $p->paymentMethod?->name }}</td>
+                        <td>{{ $p->creator?->name ?? '—' }}</td>
+                        <td class="num" style="color: {{ $p->direction->value === 'in' ? 'rgb(22 163 74)' : 'rgb(220 38 38)' }}">{{ $p->direction->value === 'in' ? '' : '-' }}{{ $fmt($p->amount) }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        </x-filament::section>
+    @endif
     @if ($s->movements->isNotEmpty())
         <x-filament::section :heading="__('Cash in / out')">
             <table class="cs-table">

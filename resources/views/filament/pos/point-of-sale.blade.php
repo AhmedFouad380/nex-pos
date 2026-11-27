@@ -616,8 +616,10 @@
                     <template x-if="summary && !summary.blind">
                         <div class="pos-totals">
                             <div><span>{{ __('Opening cash') }}</span><span x-text="money(summary.opening)"></span></div>
-                            <div><span>{{ __('Cash sales') }}</span><span x-text="money(summary.cash_in_payments)"></span></div>
-                            <div><span>{{ __('Cash refunds') }}</span><span x-text="'-' + money(summary.cash_out_payments)"></span></div>
+                            <div><span>{{ __('Cash sales') }}</span><span x-text="money(summary.cash_sales)"></span></div>
+                            <div x-show="Number(summary.cash_received_other) > 0"><span>{{ __('Other cash received') }}</span><span x-text="money(summary.cash_received_other)"></span></div>
+                            <div><span>{{ __('Cash refunds') }}</span><span x-text="'-' + money(summary.cash_refunds)"></span></div>
+                            <div x-show="Number(summary.cash_paid_other) > 0"><span>{{ __('Other cash paid out') }}</span><span x-text="'-' + money(summary.cash_paid_other)"></span></div>
                             <div><span>{{ __('Cash in') }}</span><span x-text="money(summary.cash_in)"></span></div>
                             <div><span>{{ __('Cash out') }}</span><span x-text="'-' + money(summary.cash_out)"></span></div>
                             <div class="pos-grand"><span>{{ __('Expected in drawer') }}</span><span x-text="money(summary.expected_cash)"></span></div>

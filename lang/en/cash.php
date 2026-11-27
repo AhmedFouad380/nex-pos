@@ -9,8 +9,18 @@ return [
         'user_has_session' => 'You already have an open shift.',
         'session_closed' => 'The shift is closed.',
         'no_session' => 'Open a shift first.',
+        'no_open_shift' => 'No shift is open today in branch :branch. Open a shift first to pay or take cash from the branch box.',
         'not_enough_cash' => 'The amount is more than the cash in the drawer.',
         'suspended_sales' => 'There are suspended sales on this shift. Finish or delete them before closing.',
+    ],
+    'kinds' => [
+        'sale_return' => 'Sale return',
+        'employee_advance' => 'Employee advance',
+        'expense' => 'Expense',
+        'purchase' => 'Purchase payment',
+        'purchase_return' => 'Purchase return',
+        'receipt' => 'Receipt voucher',
+        'payment' => 'Payment voucher',
     ],
     'closed' => [
         'title' => 'Shift closed: :cashier — :register',

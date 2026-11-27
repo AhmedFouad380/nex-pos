@@ -6,6 +6,7 @@ use App\Domain\CashManagement\Actions\CloseCashSession;
 use App\Domain\CashManagement\Enums\CashSessionStatus;
 use App\Domain\CashManagement\Models\CashSession;
 use App\Domain\CashManagement\Services\CashSessionSummary;
+use App\Domain\Finance\Models\Payment;
 use App\Filament\Actions\ActivityHistoryAction;
 use App\Filament\Admin\Resources\CashSessions\CashSessionResource;
 use App\Support\DomainException;
@@ -47,6 +48,12 @@ class ViewCashSession extends Page
     public function summary(): array
     {
         return app(CashSessionSummary::class)->summarize($this->session());
+    }
+
+    /** @return list<array{payment: Payment, kind: string}> */
+    public function operations(): array
+    {
+        return app(CashSessionSummary::class)->operations($this->session());
     }
 
     protected function getHeaderActions(): array

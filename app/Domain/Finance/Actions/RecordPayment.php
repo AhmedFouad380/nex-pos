@@ -2,6 +2,7 @@
 
 namespace App\Domain\Finance\Actions;
 
+use App\Domain\CashManagement\Services\ShiftLink;
 use App\Domain\Finance\Data\PaymentData;
 use App\Domain\Finance\Enums\PaymentDirection;
 use App\Domain\Finance\Models\Payment;
@@ -33,7 +34,10 @@ final class RecordPayment
 
         return DB::transaction(function () use ($data, $amount) {
             $method = PaymentMethod::query()->findOrFail($data->paymentMethodId);
-            $accountId = $data->accountId ?? $this->accountFor($method, $data->locationId);
+            $branchAccountId = $data->accountId === null ? $this->accountFor($method, $data->locationId) : $this->branchAccount($method, $data->locationId);
+            $accountId = $data->accountId ?? $branchAccountId;
+            $cashSessionId = $data->cashSessionId
+                ?? app(ShiftLink::class)->resolve($data->locationId, $method, $accountId, $branchAccountId, $data->paidAt);
 
             $payment = Payment::query()->create([
                 'number' => $this->numbers->next(
@@ -44,7 +48,7 @@ final class RecordPayment
                 'contact_id' => $data->contactId,
                 'counter_account_id' => $data->counterAccountId,
                 'location_id' => $data->locationId,
-                'cash_session_id' => $data->cashSessionId,
+                'cash_session_id' => $cashSessionId,
                 'payment_method_id' => $method->id,
                 'account_id' => $accountId,
                 'amount' => Decimal::toDb($amount),
@@ -68,11 +72,15 @@ final class RecordPayment
     /** The money account a method uses at a location (its branch account, else its own). */
     public function accountFor(PaymentMethod $method, ?int $locationId): int
     {
+        return $this->branchAccount($method, $locationId) ?? throw new DomainException(__('finance.errors.method_without_account', ['method' => $method->name]));
+    }
+
+    private function branchAccount(PaymentMethod $method, ?int $locationId): ?int
+    {
         $accountId = $locationId
             ? DB::table('location_payment_method')->where('location_id', $locationId)->where('payment_method_id', $method->id)->value('account_id')
             : null;
-        $accountId ??= $method->account_id;
 
-        return $accountId ?? throw new DomainException(__('finance.errors.method_without_account', ['method' => $method->name]));
+        return ($accountId ?? $method->account_id) === null ? null : (int) ($accountId ?? $method->account_id);
     }
 }
