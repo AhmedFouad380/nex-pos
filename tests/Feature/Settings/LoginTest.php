@@ -4,6 +4,7 @@ use App\Filament\Admin\Resources\Settings\Pages\ManageUsers;
 use App\Filament\Auth\Login;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Spatie\Permission\Models\Role;
 
 use function Pest\Livewire\livewire;
 
@@ -26,12 +27,21 @@ it('sends a cashier who signs in on the admin login to the cash register', funct
 });
 
 it('still refuses a user who may open no panel, and a wrong password', function () {
-    User::factory()->create(['email' => 'nobody@shop.test', 'password' => '12345678']);
+    $nobody = User::factory()->create(['email' => 'nobody@shop.test', 'password' => '12345678']);
+    $nobody->assignRole(Role::create(['name' => 'كاشير محل', 'guard_name' => 'web'])); // a role without any access
 
+    // the password is right: say why, instead of "wrong credentials"
     livewire(Login::class)->fillForm(['email' => 'nobody@shop.test', 'password' => '12345678'])
-        ->call('authenticate')->assertHasFormErrors(['email']);
+        ->call('authenticate')->assertHasFormErrors(['email'])->assertSee('دخول نقطة البيع');
     expect(auth()->check())->toBeFalse();
 
+    $nobody->update(['is_active' => false]);
+    livewire(Login::class)->fillForm(['email' => 'nobody@shop.test', 'password' => '12345678'])
+        ->call('authenticate')->assertHasFormErrors(['email'])->assertSee('هذا الحساب موقوف');
+
+    // a wrong password tells nothing about the account
+    livewire(Login::class)->fillForm(['email' => 'nobody@shop.test', 'password' => 'wrong-one'])
+        ->call('authenticate')->assertHasFormErrors(['email'])->assertDontSee('موقوف');
     livewire(Login::class)->fillForm(['email' => config('newpos.seed_admin.email'), 'password' => 'wrong'])
         ->call('authenticate')->assertHasFormErrors(['email']);
 });
