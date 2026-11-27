@@ -76,7 +76,7 @@ class SaleReturnResource extends Resource
                 return $sale ? $sale->invoice_no.' — '.$sale->customer->name : '—';
             }),
             DateTimePicker::make('return_date')->label(__('Date'))->default(now())->required(),
-            TextInput::make('reason')->label(__('Reason'))->maxLength(255),
+            TextInput::make('reason')->label(__('Reason'))->required()->maxLength(255),
             Repeater::make('lines')->label(__('Items'))->columnSpanFull()->addable(false)->deletable(false)->reorderable(false)
                 ->table([TableColumn::make(__('Product')), TableColumn::make(__('Can be returned')), TableColumn::make(__('Return quantity')), TableColumn::make(__('Back to stock'))])
                 ->schema([

@@ -43,10 +43,15 @@ it('returns a sale from its page with an immediate refund', function () {
 
     $page = livewire(ReturnPages\CreateSaleReturn::class, ['saleId' => $sale->id])->assertOk();
     $key = array_key_first($page->get('data.lines'));
-    $page->set("data.lines.{$key}.qty", 1)->set('data.refund_method_id', cashMethodId())->call('create')->assertHasNoFormErrors();
+    $page->set("data.lines.{$key}.qty", 1)->set('data.refund_method_id', cashMethodId())
+        ->call('create')->assertHasFormErrors(['reason' => 'required']); // a return must say why
+    expect(SaleReturn::query()->exists())->toBeFalse();
+
+    $page->set('data.reason', 'عيب صناعة')->call('create')->assertHasNoFormErrors();
 
     $return = SaleReturn::query()->sole();
-    expect((string) $return->total)->toBe('10.0000')->and($return->payment_status)->toBe(PaymentStatus::Paid)
+    expect($return->reason)->toBe('عيب صناعة')
+        ->and((string) $return->total)->toBe('10.0000')->and($return->payment_status)->toBe(PaymentStatus::Paid)
         ->and((string) app(StockLedger::class)->onHand($this->tea->id, $this->location->id))->toBe('7.0000');
     livewire(ReturnPages\ViewSaleReturn::class, ['record' => $return->id])->assertOk();
     livewire(ReturnPages\ListSaleReturns::class)->assertCanSeeTableRecords([$return]);
