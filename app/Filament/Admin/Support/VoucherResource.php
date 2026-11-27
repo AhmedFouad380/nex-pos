@@ -63,9 +63,14 @@ abstract class VoucherResource extends Resource
         return $resource::getUrl($page, ['record' => $payment]);
     }
 
+    /** Each page opens with its own permission (سندات القبض / سندات الصرف), not with "view payments", which covers both. */
     protected static function permissionFor(string $action): string|false
     {
-        return in_array($action, ['viewAny', 'view'], true) ? 'payments.view' : false;
+        if (! in_array($action, ['viewAny', 'view'], true)) {
+            return false;
+        }
+
+        return static::direction() === PaymentDirection::In ? 'vouchers.receipt' : 'vouchers.payment';
     }
 
     public static function infolist(Schema $schema): Schema

@@ -106,3 +106,18 @@ it('lists vouchers only; money taken on an invoice stays on the invoice and its 
     livewire(ListReceiptVouchers::class)->assertCanSeeTableRecords([$voucher])->assertCanNotSeeTableRecords([$tendered]);
     livewire(ViewReceiptVoucher::class, ['record' => $tendered->id])->assertOk();
 });
+
+it('opens each voucher page with its own permission, not with view payments', function () {
+    $role = Spatie\Permission\Models\Role::create(['name' => 'صرف فقط', 'guard_name' => 'web']);
+    $role->givePermissionTo(['admin.access', 'payments.view', 'vouchers.payment']);
+    $user = User::factory()->create();
+    $user->assignRole($role);
+    $this->actingAs($user);
+
+    expect(App\Filament\Admin\Resources\PaymentVouchers\PaymentVoucherResource::canViewAny())->toBeTrue()
+        ->and(App\Filament\Admin\Resources\ReceiptVouchers\ReceiptVoucherResource::canViewAny())->toBeFalse();
+
+    $role->givePermissionTo('vouchers.receipt');
+    $user->unsetRelation('roles')->forgetCachedPermissions();
+    expect(App\Filament\Admin\Resources\ReceiptVouchers\ReceiptVoucherResource::canViewAny())->toBeTrue();
+});
