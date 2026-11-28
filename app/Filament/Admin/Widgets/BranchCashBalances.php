@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Widgets;
 
-use App\Domain\CashManagement\Enums\CashSessionStatus;
 use App\Domain\CashManagement\Models\CashSession;
 use App\Domain\CashManagement\Services\BranchCash;
 use App\Domain\CashManagement\Services\CashSessionSummary;
@@ -46,7 +45,7 @@ class BranchCashBalances extends Widget
         $boxes = $locations->mapWithKeys(fn (Location $l) => [$l->id => $cash->boxFor($l->id)]);
         $balances = $cash->balances($boxes->filter()->unique()->values()->all());
         $accounts = Account::query()->whereKey($boxes->filter()->all())->get()->keyBy('id');
-        $pending = CashSession::query()->where('status', CashSessionStatus::Closed)->whereNull('received_at')
+        $pending = CashSession::query()->awaitingReceipt()
             ->join('cash_registers', 'cash_registers.id', '=', 'cash_sessions.cash_register_id')
             ->groupBy('cash_registers.location_id')
             ->selectRaw('cash_registers.location_id, count(*) as n, coalesce(sum(counted_cash), 0) as cash')->get()->keyBy('location_id');

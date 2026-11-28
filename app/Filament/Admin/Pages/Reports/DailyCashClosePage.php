@@ -38,7 +38,7 @@ class DailyCashClosePage extends ReportPage
     public function cards(): array
     {
         $shifts = $this->shifts();
-        $pending = $shifts->whereNull('received_at');
+        $pending = $shifts->filter(fn (CashSession $s) => $s->awaitsReceipt());
 
         return [
             [__('Counted cash'), (float) $shifts->sum('counted_cash'), 'money'],
@@ -61,7 +61,7 @@ class DailyCashClosePage extends ReportPage
             'received' => $s->received_at ? (float) $s->received_amount : null,
             'kept' => $s->received_at ? (float) $s->kept_float : null,
             'shortfall' => $s->received_at ? (float) ReceiveShiftCash::shortfall($s) : null,
-            'receiver' => $s->received_at ? $s->receiver?->name.' → '.($s->receivedAccount->name ?? '—') : __('Awaiting receipt'),
+            'receiver' => $s->received_at ? $s->receiver?->name.' → '.($s->receivedAccount->name ?? '—') : ($s->awaitsReceipt() ? __('Awaiting receipt') : '—'),
         ])->all();
 
         return [['columns' => [

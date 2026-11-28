@@ -71,8 +71,7 @@ class CashSessionResource extends Resource
                 TextColumn::make('expected_cash')->label(__('Expected in drawer'))->numeric(2)->placeholder('—'),
                 TextColumn::make('counted_cash')->label(__('Counted cash'))->numeric(2)->placeholder('—'),
                 TextColumn::make('received_at')->label(__('Cash receipt'))->badge()
-                    ->state(fn (CashSession $record) => $record->status === CashSessionStatus::Open ? null
-                        : ($record->received_at ? __('Received') : __('Awaiting receipt')))
+                    ->state(fn (CashSession $record) => $record->received_at ? __('Received') : ($record->awaitsReceipt() ? __('Awaiting receipt') : null))
                     ->color(fn (CashSession $record) => $record->received_at ? 'success' : 'warning')
                     ->description(fn (CashSession $record) => $record->received_at ? number_format((float) $record->received_amount, 2).' — '.$record->receiver?->name : null)
                     ->placeholder('—'),
@@ -82,7 +81,7 @@ class CashSessionResource extends Resource
             ->filters([
                 SelectFilter::make('status')->label(__('Status'))->options(CashSessionStatus::class),
                 Filter::make('awaiting_receipt')->label(__('Awaiting receipt'))
-                    ->query(fn (Builder $query) => $query->where('status', CashSessionStatus::Closed)->whereNull('received_at')),
+                    ->query(fn (Builder $query) => $query->awaitingReceipt()),
                 SelectFilter::make('user_id')->label(__('Cashier'))->relationship('user', 'name'),
             ])
             ->recordActions([ViewAction::make()]);

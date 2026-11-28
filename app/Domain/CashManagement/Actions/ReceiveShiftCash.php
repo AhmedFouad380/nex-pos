@@ -25,7 +25,7 @@ final class ReceiveShiftCash
         }
         $amount = Decimal::of($amount);
         $kept = Decimal::of($keptFloat);
-        if ($amount->isNegative() || $kept->isNegative() || ($amount->isZero() && $kept->isZero())) {
+        if ($amount->isNegative() || $kept->isNegative()) {
             throw new DomainException(__('finance.errors.non_positive_amount'));
         }
         if ($amount->plus($kept)->isGreaterThan(Decimal::of($session->counted_cash ?? 0))) {

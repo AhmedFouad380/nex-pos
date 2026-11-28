@@ -22,6 +22,7 @@ class CashRegister extends Model
         'location_id',
         'name',
         'cash_account_id',
+        'next_cash_account_id',
         'is_active',
     ];
 

@@ -3,6 +3,7 @@
 namespace App\Domain\CashManagement\Services;
 
 use App\Domain\CashManagement\Enums\CashSessionStatus;
+use App\Domain\CashManagement\Models\CashRegister;
 use App\Domain\CashManagement\Models\CashSession;
 use App\Domain\Finance\Enums\PaymentMethodType;
 use App\Domain\Finance\Models\Account;
@@ -51,19 +52,44 @@ final class BranchCash
     }
 
     /**
-     * Makes $account the box of a branch from now on. Refused while the branch has a shift open, since the shift's
-     * cash and its closing difference would end up on two different boxes.
+     * Makes $account the box of a branch. While a shift is open there it waits for that shift to close (the
+     * shift's cash and its closing difference stay on one box): false is returned then.
      */
-    public function assign(Account $account, int $locationId): void
+    public function assign(Account $account, int $locationId): bool
     {
         $method = $this->cashMethod() ?? throw new DomainException(__('cash.errors.no_cash_method'));
-        if ($this->openShift($locationId) !== null) {
-            throw new DomainException(__('cash.errors.branch_shift_open', ['branch' => Location::query()->whereKey($locationId)->value('name')]));
+        if ($shift = $this->openShift($locationId)) {
+            $shift->cashRegister->update(['next_cash_account_id' => $account->id]);
+
+            return false;
         }
         DB::table('location_payment_method')->updateOrInsert(
             ['location_id' => $locationId, 'payment_method_id' => $method->id],
             ['account_id' => $account->id],
         );
+        CashRegister::query()->where('location_id', $locationId)->update(['next_cash_account_id' => null]);
+
+        return true;
+    }
+
+    /** Called when a shift closes: the box chosen meanwhile becomes the branch's box. */
+    public function applyNextBox(CashRegister $register): void
+    {
+        $register->refresh();
+        if ($register->next_cash_account_id !== null && $account = Account::query()->find($register->next_cash_account_id)) {
+            $this->assign($account, $register->location_id);
+        }
+    }
+
+    /** @return array<int, list<int>> box account id => branches that switch to it when their open shift closes */
+    public function nextBoxes(): array
+    {
+        $map = [];
+        foreach (CashRegister::query()->whereNotNull('next_cash_account_id')->get(['location_id', 'next_cash_account_id']) as $register) {
+            $map[(int) $register->next_cash_account_id][] = (int) $register->location_id;
+        }
+
+        return $map;
     }
 
     public function openShift(int $locationId): ?CashSession

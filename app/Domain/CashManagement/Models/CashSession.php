@@ -11,9 +11,11 @@ use App\Domain\Sales\Models\Sale;
 use App\Domain\Sales\Models\SaleReturn;
 use App\Models\User;
 use App\Support\Audit\Audited;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class CashSession extends Model
 {
@@ -116,10 +118,23 @@ class CashSession extends Model
         return $this->hasMany(Expense::class, 'cash_session_id');
     }
 
-    /** Closed, and its cash not yet taken out of the drawer by a manager / the accountant. */
+    /** Closed in this system, and its cash not yet taken out of the drawer by a manager / the accountant. */
     public function awaitsReceipt(): bool
     {
-        return $this->status === CashSessionStatus::Closed && $this->received_at === null;
+        return $this->status === CashSessionStatus::Closed && $this->received_at === null && ! $this->isImported();
+    }
+
+    /** A shift copied from the old system: its cash was handled there, so it never waits for a receipt here. */
+    public function isImported(): bool
+    {
+        return DB::table('legacy_id_map')->where('new_type', 'cash_session')->where('new_id', $this->id)->exists();
+    }
+
+    /** @param Builder<CashSession> $query */
+    public function scopeAwaitingReceipt(Builder $query): void
+    {
+        $query->where('cash_sessions.status', CashSessionStatus::Closed)->whereNull('cash_sessions.received_at')
+            ->whereNotExists(fn ($sub) => $sub->from('legacy_id_map')->where('new_type', 'cash_session')->whereColumn('legacy_id_map.new_id', 'cash_sessions.id'));
     }
 
     /** @return BelongsTo<User, $this> */

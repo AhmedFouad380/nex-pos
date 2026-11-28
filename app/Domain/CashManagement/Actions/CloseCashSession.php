@@ -4,6 +4,7 @@ namespace App\Domain\CashManagement\Actions;
 
 use App\Domain\CashManagement\Enums\CashSessionStatus;
 use App\Domain\CashManagement\Models\CashSession;
+use App\Domain\CashManagement\Services\BranchCash;
 use App\Domain\CashManagement\Services\CashSessionSummary;
 use App\Domain\CashManagement\Services\ShiftCloseNotifier;
 use App\Domain\Finance\Services\Posting;
@@ -46,6 +47,8 @@ final class CloseCashSession
             ]);
 
             app(Posting::class)->sync($session);
+            // a box chosen for the branch during the shift takes over now that its cash is counted on the old one
+            app(BranchCash::class)->applyNextBox($session->cashRegister);
 
             return $session;
         });

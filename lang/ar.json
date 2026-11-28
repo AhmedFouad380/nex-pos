@@ -993,5 +993,8 @@
     "The transfer is voided and the shift waits for its receipt again.": "يُلغى التحويل وتعود الوردية بانتظار الاستلام.",
     "With a balance only": "التي عليها رصيد فقط",
     "Shift open now": "الوردية المفتوحة",
-    "shift open, close it first": "عليه وردية مفتوحة، اقفلها أولًا"
+    "shift open: switches when it closes": "عليه وردية مفتوحة: تتغيّر الخزنة عند قفلها",
+    ":box is now the cash box of :branch.": "أصبحت :box خزنة فرع :branch.",
+    ":box becomes the cash box of :branch when its open shift closes.": "ستصبح :box خزنة فرع :branch عند قفل الوردية المفتوحة فيه.",
+    "From the next shift: :branches": "من الوردية القادمة: :branches"
 }

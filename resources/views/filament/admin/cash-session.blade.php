@@ -48,7 +48,7 @@
             </table>
         </x-filament::section>
     </div>
-    @if ($s->status->value === 'closed')
+    @if ($s->received_at || $s->awaitsReceipt())
         <x-filament::section :heading="__('Cash receipt')">
             @if ($s->received_at)
                 <table class="cs-table">

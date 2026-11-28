@@ -17,6 +17,7 @@ use App\Filament\Admin\Widgets\BranchCashBalances;
 use App\Models\User;
 use App\Support\DomainException;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\DB;
 
 use function Pest\Livewire\livewire;
 
@@ -79,13 +80,29 @@ it('refuses to receive more than was counted, or a shift still open', function (
     expect(fn () => app(ReceiveShiftCash::class)->handle($open, 10, $this->main->id))->toThrow(DomainException::class);
 });
 
-it('makes a new box the cash box of a branch, but not while a shift is open there', function () {
+it('makes a new box the cash box of a branch; with a shift open there, once it closes', function () {
     $open = openSession();
-    expect(fn () => $this->cash->assign($this->main, $this->location->id))->toThrow(DomainException::class, 'وردية مفتوحة');
+    $box = TreasuryResource::createBox(['name' => 'خزنة الفرع الجديدة', 'sub_type' => 'cash', 'location_id' => $this->location->id]);
+    expect($this->cash->boxFor($this->location->id))->toBe($this->branchBox->id)
+        ->and($this->cash->nextBoxes())->toBe([$box->id => [$this->location->id]]);
+    livewire(ManageTreasuries::class)->searchTable('خزنة الفرع الجديدة')->assertCanSeeTableRecords([$box])->assertSee('من الوردية القادمة');
 
     app(CloseCashSession::class)->handle($open, 0);
-    $this->cash->assign($this->main, $this->location->id);
-    expect($this->cash->boxFor($this->location->id))->toBe($this->main->id);
+    expect($this->cash->boxFor($this->location->id))->toBe($box->id)
+        ->and($this->cash->nextBoxes())->toBe([]);
+
+    expect($this->cash->assign($this->main, $this->location->id))->toBeTrue()
+        ->and($this->cash->boxFor($this->location->id))->toBe($this->main->id);
+});
+
+it('never waits for the receipt of a shift copied from the old system, and takes a shift that counted nothing', function () {
+    DB::table('legacy_id_map')->insert(['legacy_table' => 'POSTransactions', 'legacy_key' => '1|1|1', 'new_type' => 'cash_session', 'new_id' => $this->session->id]);
+    expect($this->session->refresh()->awaitsReceipt())->toBeFalse();
+    livewire(ListCashSessions::class)->filterTable('awaiting_receipt')->assertCanNotSeeTableRecords([$this->session]);
+
+    $empty = app(CloseCashSession::class)->handle(openSession(), 0);
+    app(ReceiveShiftCash::class)->handle($empty, 0, $this->main->id);
+    expect($empty->refresh()->received_at)->not->toBeNull()->and($empty->account_transfer_id)->toBeNull();
 });
 
 it('brings a box to what was counted, the difference on a chosen account', function () {

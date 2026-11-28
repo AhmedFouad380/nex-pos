@@ -91,13 +91,24 @@ class TreasuryResource extends Resource
         return (self::$branches ??= app(BranchCash::class)->branchesByBox())[$account->id] ?? [];
     }
 
-    /** @return array<int, string> branches, those with a shift open marked (their box cannot change now) */
+    /** @return array<int, string> branches, those with a shift open marked (their box switches when it closes) */
     public static function branchOptions(): array
     {
         $cash = app(BranchCash::class);
 
         return Location::query()->orderBy('name')->pluck('name', 'id')
-            ->map(fn (string $name, int $id) => $cash->openShift($id) ? $name.' — '.__('shift open, close it first') : $name)->all();
+            ->map(fn (string $name, int $id) => $cash->openShift($id) ? $name.' — '.__('shift open: switches when it closes') : $name)->all();
+    }
+
+    /** Assigns the box and says whether it applies now or when the branch's open shift closes. */
+    public static function assignAndTell(Account $account, int $locationId): void
+    {
+        $now = app(BranchCash::class)->assign($account, $locationId);
+        $branch = Location::query()->whereKey($locationId)->value('name');
+        $now
+            ? Notification::make()->success()->title(__(':box is now the cash box of :branch.', ['box' => $account->name, 'branch' => $branch]))->send()
+            : Notification::make()->warning()->persistent()
+                ->title(__(':box becomes the cash box of :branch when its open shift closes.', ['box' => $account->name, 'branch' => $branch]))->send();
     }
 
     public static function forgetBranches(): void
@@ -113,7 +124,6 @@ class TreasuryResource extends Resource
                 ->options([AccountSubType::Cash->value => AccountSubType::Cash->getLabel(), AccountSubType::Bank->value => AccountSubType::Bank->getLabel()])
                 ->disabledOn('edit'),
             Select::make('location_id')->label(__('Cash box of branch'))->options(fn () => self::branchOptions())
-                ->disableOptionWhen(fn (string $value) => app(BranchCash::class)->openShift((int) $value) !== null)
                 ->helperText(__('The branch drawer posts its cash here from now on. Leave empty for a box of its own (e.g. the main safe).'))
                 ->visibleOn('create'),
             TextInput::make('bank_name')->label(__('Bank name'))->maxLength(255)
@@ -143,7 +153,7 @@ class TreasuryResource extends Resource
                 'bank_name' => $data['bank_name'] ?? null, 'account_number' => $data['account_number'] ?? null, 'note' => $data['note'] ?? null,
             ]);
             if (filled($data['location_id'] ?? null)) {
-                app(BranchCash::class)->assign($account, (int) $data['location_id']);
+                self::assignAndTell($account, (int) $data['location_id']);
             }
             self::forgetBranches();
 
@@ -160,8 +170,13 @@ class TreasuryResource extends Resource
                 TextColumn::make('name')->label(__('Name'))->searchable()->weight('bold')
                     ->description(fn (Account $record) => $record->bank_name),
                 TextColumn::make('sub_type')->label(__('Type'))->badge(),
-                TextColumn::make('branches')->label(__('Cash box of branch'))->placeholder('—')
-                    ->state(fn (Account $record) => Location::query()->whereKey(self::branchesOf($record))->pluck('name')->implode('، ') ?: null),
+                TextColumn::make('branches')->label(__('Cash box of branch'))->placeholder('—')->listWithLineBreaks()
+                    ->state(function (Account $record) {
+                        $now = Location::query()->whereKey(self::branchesOf($record))->pluck('name')->implode('، ');
+                        $next = Location::query()->whereKey(app(BranchCash::class)->nextBoxes()[$record->id] ?? [])->pluck('name')->implode('، ');
+
+                        return array_values(array_filter([$now, $next ? __('From the next shift: :branches', ['branches' => $next]) : null])) ?: null;
+                    }),
                 TextColumn::make('balance')->label(__('Balance'))->numeric(2)->sortable()->weight('bold')
                     ->color(fn ($state) => (float) $state < 0 ? 'danger' : null),
                 IconColumn::make('is_active')->label(__('Active'))->boolean()->toggleable(isToggledHiddenByDefault: true),
@@ -182,12 +197,10 @@ class TreasuryResource extends Resource
                 Action::make('assignBranch')->label(__('Make it a branch box'))->icon('heroicon-o-building-storefront')->color('gray')
                     ->visible(fn () => (bool) auth()->user()?->can('accounts.manage'))
                     ->modalDescription(__('The branch drawer posts its cash to this box from now on; what is already on its old box stays there and can be moved with an account transfer.'))
-                    ->schema([Select::make('location_id')->label(__('Location'))->required()->options(fn () => self::branchOptions())
-                        ->disableOptionWhen(fn (string $value) => app(BranchCash::class)->openShift((int) $value) !== null)])
+                    ->schema([Select::make('location_id')->label(__('Location'))->required()->options(fn () => self::branchOptions())])
                     ->action(function (Account $record, array $data) {
-                        DomainGuard::run(fn () => app(BranchCash::class)->assign($record, (int) $data['location_id']));
+                        DomainGuard::run(fn () => self::assignAndTell($record, (int) $data['location_id']));
                         self::forgetBranches();
-                        Notification::make()->success()->title(__('Saved'))->send();
                     }),
                 Action::make('adjustToCount')->label(__('Adjust to count'))->icon('heroicon-o-calculator')->color('warning')
                     ->visible(fn () => (bool) auth()->user()?->can('accounts.manage'))
