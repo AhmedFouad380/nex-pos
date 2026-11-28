@@ -18,6 +18,8 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class EmployeeResource extends ContactResource
@@ -92,6 +94,15 @@ class EmployeeResource extends ContactResource
             TextColumn::make('employeeProfile.location.name')->label(__('Location'))->placeholder('—')->toggleable(),
             TextColumn::make('employeeProfile.base_salary')->label(__('Monthly salary'))->numeric(2)->placeholder('—'),
             TextColumn::make('employeeProfile.status')->label(__('Status'))->badge()->placeholder(__('No salary data yet')),
+        ];
+    }
+
+    protected static function extraTableFilters(): array
+    {
+        return [
+            SelectFilter::make('location')->label(__('Location'))->multiple()->options(fn () => UserLocations::options())
+                ->query(fn (Builder $query, array $data) => $query->when($data['values'] ?? [], fn (Builder $query, array $ids) => $query
+                    ->whereHas('employeeProfile', fn (Builder $profile) => $profile->whereIn('location_id', $ids)))),
         ];
     }
 

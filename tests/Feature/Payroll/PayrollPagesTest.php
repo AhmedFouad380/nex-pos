@@ -156,3 +156,12 @@ it('shows an advance as a payment voucher, and the employee page lists their vou
     // and the account statement shows the voucher
     livewire(EmployeeStatement::class, ['record' => $employee->id])->assertOk()->assertSee($voucher->number);
 });
+
+it('filters the employees by branch', function () {
+    $other = Location::query()->create(['name' => 'فرع تاني', 'code' => 'B2']);
+    $here = makeEmployee('3000');
+    $there = makeEmployee('3000', ['location_id' => $other->id]);
+
+    livewire(ListEmployees::class)->filterTable('location', [$other->id])
+        ->assertCanSeeTableRecords([$there])->assertCanNotSeeTableRecords([$here]);
+});

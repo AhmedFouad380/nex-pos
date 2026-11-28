@@ -161,6 +161,12 @@ abstract class ContactResource extends Resource
         return [];
     }
 
+    /** Extra filters a subclass adds to the list, before the common ones. */
+    protected static function extraTableFilters(): array
+    {
+        return [];
+    }
+
     /** Extra columns a subclass adds to the list, after the name. */
     protected static function extraTableColumns(): array
     {
@@ -223,6 +229,7 @@ abstract class ContactResource extends Resource
                 IconColumn::make('is_active')->label(__('Active'))->boolean()->toggleable(),
             ])
             ->filters([
+                ...static::extraTableFilters(),
                 SelectFilter::make('customer_group_id')->label(__('Customer group'))->relationship('customerGroup', 'name')
                     ->visible(static::side() === ContactType::Customer),
                 Filter::make('owes_us')->label(__('They owe us'))->query(fn (Builder $query) => $query->where('balance', '>', 0)),
