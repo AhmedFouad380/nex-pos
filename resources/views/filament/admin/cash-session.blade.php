@@ -48,6 +48,24 @@
             </table>
         </x-filament::section>
     </div>
+    @if ($s->status->value === 'closed')
+        <x-filament::section :heading="__('Cash receipt')">
+            @if ($s->received_at)
+                <table class="cs-table">
+                    <tr><td>{{ __('Received by') }}</td><td>{{ $s->receiver?->name ?? '—' }} — {{ $s->received_at->format('Y-m-d H:i') }}</td></tr>
+                    <tr><td>{{ __('Amount received') }}</td><td class="num">{{ $fmt($s->received_amount) }}@if ($s->receivedAccount) → {{ $s->receivedAccount->name }}@endif @if ($s->receiptTransfer) ({{ $s->receiptTransfer->number }})@endif</td></tr>
+                    <tr><td>{{ __('Float left in the drawer') }}</td><td class="num">{{ $fmt($s->kept_float) }}</td></tr>
+                    @php($short = (float) \App\Domain\CashManagement\Actions\ReceiveShiftCash::shortfall($s))
+                    @if ($short != 0)
+                        <tr class="cs-strong"><td>{{ __('Not accounted for at receipt') }}</td><td class="num" style="color: rgb(220 38 38)">{{ $fmt($short) }}</td></tr>
+                    @endif
+                    @if ($s->received_note)<tr><td>{{ __('Note') }}</td><td>{{ $s->received_note }}</td></tr>@endif
+                </table>
+            @else
+                <p style="color: rgb(217 119 6); font-weight: 600">{{ __('The cash of this shift has not been received yet.') }}</p>
+            @endif
+        </x-filament::section>
+    @endif
     @php($operations = $this->operations())
     @if ($operations !== [])
         <x-filament::section :heading="__('Shift operations')" :description="__('Advances, vouchers, expenses and returns paid from or into the branch cash during the shift.')">

@@ -81,7 +81,7 @@ final class CashSessionSummary
             ->reject(fn (array $row) => $row['kind'] === 'sale')->values()->all();
     }
 
-    private function kind(Payment $payment, bool $advance): string
+    public function kind(Payment $payment, bool $advance): string
     {
         if ($advance) {
             return 'employee_advance';

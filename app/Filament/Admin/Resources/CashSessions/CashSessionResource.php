@@ -14,6 +14,7 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -59,7 +60,7 @@ class CashSessionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['cashRegister.location', 'user']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['cashRegister.location', 'user', 'receiver']))
             ->defaultSort('opened_at', 'desc')
             ->columns([
                 TextColumn::make('cashRegister.location.name')->label(__('Location')),
@@ -69,11 +70,19 @@ class CashSessionResource extends Resource
                 TextColumn::make('status')->label(__('Status'))->badge(),
                 TextColumn::make('expected_cash')->label(__('Expected in drawer'))->numeric(2)->placeholder('—'),
                 TextColumn::make('counted_cash')->label(__('Counted cash'))->numeric(2)->placeholder('—'),
+                TextColumn::make('received_at')->label(__('Cash receipt'))->badge()
+                    ->state(fn (CashSession $record) => $record->status === CashSessionStatus::Open ? null
+                        : ($record->received_at ? __('Received') : __('Awaiting receipt')))
+                    ->color(fn (CashSession $record) => $record->received_at ? 'success' : 'warning')
+                    ->description(fn (CashSession $record) => $record->received_at ? number_format((float) $record->received_amount, 2).' — '.$record->receiver?->name : null)
+                    ->placeholder('—'),
                 TextColumn::make('difference')->label(__('Difference'))->numeric(2)->placeholder('—')
                     ->color(fn ($state) => $state === null ? null : ((float) $state < 0 ? 'danger' : ((float) $state > 0 ? 'warning' : 'success'))),
             ])
             ->filters([
                 SelectFilter::make('status')->label(__('Status'))->options(CashSessionStatus::class),
+                Filter::make('awaiting_receipt')->label(__('Awaiting receipt'))
+                    ->query(fn (Builder $query) => $query->where('status', CashSessionStatus::Closed)->whereNull('received_at')),
                 SelectFilter::make('user_id')->label(__('Cashier'))->relationship('user', 'name'),
             ])
             ->recordActions([ViewAction::make()]);

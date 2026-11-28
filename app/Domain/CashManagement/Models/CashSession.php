@@ -3,6 +3,8 @@
 namespace App\Domain\CashManagement\Models;
 
 use App\Domain\CashManagement\Enums\CashSessionStatus;
+use App\Domain\Finance\Models\Account;
+use App\Domain\Finance\Models\AccountTransfer;
 use App\Domain\Finance\Models\Expense;
 use App\Domain\Finance\Models\Payment;
 use App\Domain\Sales\Models\Sale;
@@ -40,6 +42,13 @@ class CashSession extends Model
         'cheques_count',
         'denominations',
         'closing_note',
+        'received_at',
+        'received_by',
+        'received_amount',
+        'kept_float',
+        'received_account_id',
+        'account_transfer_id',
+        'received_note',
     ];
 
     protected function casts(): array
@@ -53,6 +62,9 @@ class CashSession extends Model
             'counted_cash' => 'decimal:4',
             'difference' => 'decimal:4',
             'denominations' => 'array',
+            'received_at' => 'datetime',
+            'received_amount' => 'decimal:4',
+            'kept_float' => 'decimal:4',
         ];
     }
 
@@ -102,5 +114,29 @@ class CashSession extends Model
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class, 'cash_session_id');
+    }
+
+    /** Closed, and its cash not yet taken out of the drawer by a manager / the accountant. */
+    public function awaitsReceipt(): bool
+    {
+        return $this->status === CashSessionStatus::Closed && $this->received_at === null;
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function receiver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
+    /** @return BelongsTo<Account, $this> */
+    public function receivedAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'received_account_id');
+    }
+
+    /** @return BelongsTo<AccountTransfer, $this> */
+    public function receiptTransfer(): BelongsTo
+    {
+        return $this->belongsTo(AccountTransfer::class, 'account_transfer_id');
     }
 }
